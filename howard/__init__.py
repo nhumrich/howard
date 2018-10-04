@@ -43,7 +43,7 @@ def _convert_to(obj, t):
         if real_type == list:
             return [_convert_to(i, args[0]) for i in obj]
         elif real_type == dict:
-            return {k: _convert_from(v) for k, v in obj.items()}
+            return {_convert_to(k, args[0]): _convert_to(v, args[1]) for k, v in obj.items()}
         else:
             raise TypeError('Type {real_type} currently not supported by howard. '
                             'Consider making a PR.')
