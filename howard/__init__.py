@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, Union
 from enum import EnumMeta
 
 
@@ -35,6 +35,14 @@ def _convert_to(obj, t):
     elif hasattr(t, '__origin__'):  # i.e List from typing
         args = t.__args__
         real_type = t.__origin__
+
+        # Handle Union types by assuming Optional
+        # TODO: support real Union types
+        if real_type == Union and args[-1] == type(None):
+            if obj is None:
+                return obj
+            else:
+                return _convert_to(obj, args[0])
 
         # validate
         if not isinstance(obj, real_type):
