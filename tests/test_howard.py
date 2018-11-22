@@ -43,6 +43,29 @@ class UnsupportedFloat:
     n: float
 
 
+@dataclass
+class CustomSerializationHand(Hand):
+    def to_dict(self):
+        return {
+            '_id': self.hand_id,
+            'cards': list(map(howard.to_dict, self.cards))
+        }
+
+    @classmethod
+    def from_dict(cls, _dict):
+        return cls(hand_id=_dict['_id'], cards=[
+            howard.from_dict(card_dict, Card)
+            for card_dict
+            in _dict['cards']
+        ])
+
+
+@dataclass
+class PartyWithCustomSerializationHand:
+    party_id: int = 0
+    players: Dict[str, CustomSerializationHand] = field(default_factory=dict)
+
+
 @pytest.mark.parametrize('d, t', [
     ({'hand_id': 2, 'cards': [{'rank': 2, 'suit': 'c'}]}, Hand),
 ])
@@ -123,4 +146,33 @@ def test_dict_of_hands():
     assert len(obj.players.items()) == 2
     assert 'John' in obj.players.keys()
     assert isinstance(obj.players['John'], Hand)
+    assert len(obj.players['John'].cards) == 3
+
+def test_dict_of_hands():
+    hand1 = {'hand_id': 1, 'cards': [{'rank': 10, 'suit': 'h'}, {'rank': 9, 'suit': 's'}, {'rank': 1, 'suit': 'c'}]}
+    hand2 = {'hand_id': 2, 'cards': [{'rank': 2, 'suit': 'c'}, {'rank': 10, 'suit': 'h'}]}
+    d = {'party_id': 1, 'players': {'John': hand1, 'Joe': hand2}}
+
+    obj = howard.from_dict(d, Party)
+
+    assert isinstance(obj, Party)
+    assert obj.party_id == 1
+    assert len(obj.players.items()) == 2
+    assert 'John' in obj.players.keys()
+    assert isinstance(obj.players['John'], Hand)
+    assert len(obj.players['John'].cards) == 3
+
+
+def test_dict_of_custom_serialization_hands():
+    hand1 = {'_id': 1, 'cards': [{'rank': 10, 'suit': 'h'}, {'rank': 9, 'suit': 's'}, {'rank': 1, 'suit': 'c'}]}
+    hand2 = {'_id': 2, 'cards': [{'rank': 2, 'suit': 'c'}, {'rank': 10, 'suit': 'h'}]}
+    d = {'party_id': 1, 'players': {'John': hand1, 'Joe': hand2}}
+
+    obj = howard.from_dict(d, PartyWithCustomSerializationHand)
+
+    assert isinstance(obj, PartyWithCustomSerializationHand)
+    assert obj.party_id == 1
+    assert len(obj.players.items()) == 2
+    assert 'John' in obj.players.keys()
+    assert isinstance(obj.players['John'], CustomSerializationHand)
     assert len(obj.players['John'].cards) == 3

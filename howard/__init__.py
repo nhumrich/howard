@@ -1,12 +1,12 @@
 import dataclasses
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, Type, List, Dict
 from enum import EnumMeta
 
 
-T = TypeVar('T')
+T = TypeVar('T', bound=Type)
 
 
-def from_dict(d: dict, t: Generic[T]) -> T:
+def from_dict(d: dict, t: T) -> T:
     if not isinstance(d, dict):
         raise TypeError("First argument must be of type dict")
     if not dataclasses.is_dataclass(t):
@@ -15,7 +15,7 @@ def from_dict(d: dict, t: Generic[T]) -> T:
     return _convert_to(d, t)
 
 
-def to_dict(obj: T) -> dict:
+def to_dict(obj: object) -> dict:
     if not dataclasses.is_dataclass(obj):
         raise TypeError('Argument must be a dataclass')
 
@@ -24,7 +24,11 @@ def to_dict(obj: T) -> dict:
 
 def _convert_to(obj, t):
     kwargs = {}
-    if dataclasses.is_dataclass(t):
+
+    if hasattr(t, "from_dict"):
+        return t.from_dict(obj)
+
+    elif dataclasses.is_dataclass(t):
         for f in dataclasses.fields(t):
             if f.name in obj:
                 # get value
@@ -40,12 +44,12 @@ def _convert_to(obj, t):
         if not isinstance(obj, real_type):
             raise TypeError(f'Object "{obj}" not of expected type {real_type}')
 
-        if real_type == list:
+        if real_type in { list, List }:
             return [_convert_to(i, args[0]) for i in obj]
-        elif real_type == dict:
+        elif real_type in { dict, Dict }:
             return {_convert_to(k, args[0]): _convert_to(v, args[1]) for k, v in obj.items()}
         else:
-            raise TypeError('Type {real_type} currently not supported by howard. '
+            raise TypeError(f'Type {real_type} currently not supported by howard. '
                             'Consider making a PR.')
     elif isinstance(t, EnumMeta):
         return t(obj)
@@ -59,7 +63,9 @@ def _convert_to(obj, t):
 
 
 def _convert_from(obj):
-    if dataclasses.is_dataclass(obj):
+    if hasattr(obj, "to_dict"):
+        return obj.to_dict()
+    elif dataclasses.is_dataclass(obj):
         d = {}
         for f in dataclasses.fields(obj):
             d[f.name] = _convert_from(getattr(obj, f.name))
