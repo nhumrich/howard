@@ -163,11 +163,36 @@ def test_dict_of_hands():
     assert len(obj.players['John'].cards) == 3
 
 
-def test_dict_of_custom_serialization_hands():
+def test_dict_of_custom_deserialization_hands():
     hand1 = {'_id': 1, 'cards': [{'rank': 10, 'suit': 'h'}, {'rank': 9, 'suit': 's'}, {'rank': 1, 'suit': 'c'}]}
     hand2 = {'_id': 2, 'cards': [{'rank': 2, 'suit': 'c'}, {'rank': 10, 'suit': 'h'}]}
     d = {'party_id': 1, 'players': {'John': hand1, 'Joe': hand2}}
 
+    obj = howard.from_dict(d, PartyWithCustomSerializationHand)
+
+    assert isinstance(obj, PartyWithCustomSerializationHand)
+    assert obj.party_id == 1
+    assert len(obj.players.items()) == 2
+    assert 'John' in obj.players.keys()
+    assert isinstance(obj.players['John'], CustomSerializationHand)
+    assert len(obj.players['John'].cards) == 3
+
+
+def test_dict_of_custom_serialization_hands():
+    obj = PartyWithCustomSerializationHand(
+        party_id=1,
+        players={ 'John': CustomSerializationHand(hand_id=1,
+                                                  cards=[Card(rank=10, suit=Suit.heart),
+                                                         Card(rank=9, suit=Suit.spade),
+                                                         Card(rank=1, suit=Suit.club)]),
+                  'Joe': CustomSerializationHand(hand_id=2,
+                                                 cards=[Card(rank=2, suit=Suit.club),
+                                                        Card(rank=10, suit=Suit.heart)])})
+    hand1 = {'_id': 1, 'cards': [{'rank': 10, 'suit': 'h'}, {'rank': 9, 'suit': 's'}, {'rank': 1, 'suit': 'c'}]}
+    hand2 = {'_id': 2, 'cards': [{'rank': 2, 'suit': 'c'}, {'rank': 10, 'suit': 'h'}]}
+    d = {'party_id': 1, 'players': {'John': hand1, 'Joe': hand2}}
+    assert howard.to_dict(obj) == d
+    
     obj = howard.from_dict(d, PartyWithCustomSerializationHand)
 
     assert isinstance(obj, PartyWithCustomSerializationHand)
