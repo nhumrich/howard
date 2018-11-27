@@ -46,13 +46,12 @@ class UnsupportedFloat:
 @dataclass
 class CustomSerializationHand(Hand):
     def __serialize__(self):
-        return {"_id": self.hand_id, "cards": list(map(howard.serialize, self.cards))}
+        return {"_id": self.hand_id, "cards": howard.serialize(self.cards)}
 
     @classmethod
     def __deserialize__(cls, _dict):
         return cls(
-            hand_id=_dict["_id"],
-            cards=[howard.deserialize(card_dict, Card) for card_dict in _dict["cards"]],
+            hand_id=_dict["_id"], cards=howard.deserialize(_dict["cards"], List[Card])
         )
 
 
@@ -240,6 +239,7 @@ def test_dict_of_custom_serialization_hands():
     assert "John" in obj.players.keys()
     assert isinstance(obj.players["John"], CustomSerializationHand)
     assert len(obj.players["John"].cards) == 3
+    assert isinstance(obj.players["John"].cards[0], Card)
 
 
 @dataclass
