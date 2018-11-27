@@ -2,7 +2,7 @@
 Python datatype marshalling
 
 
-This libary marshalls dictionaries (think json) into instances of defined dataclasses and back.
+This libary marshalls serialized objects (think JSON) into instances of defined containers and dataclasses and back.
 
 
 i.e.
