@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 import dataclasses
 from enum import Enum
-from typing import List, Dict
+from typing import List, Dict, Union, NewType
 
 import pytest
 
@@ -284,3 +284,14 @@ def test_dict_of_non_dataclass():
         "employees": [{"type": "Person", "name": "Steve", "age": 56}],
     }
     assert howard.deserialize(d, Workplace) == workplace
+
+
+ID = NewType("ID", Union[int, str])
+
+
+def test_generic_and_new_type():
+    _id = ID("42")
+    serialized = howard.serialize(_id)
+    assert serialized == "42"
+    assert howard.deserialize(serialized, ID) == "42"
+

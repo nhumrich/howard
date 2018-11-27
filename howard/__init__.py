@@ -1,6 +1,6 @@
 import dataclasses
 from functools import singledispatch
-from typing import Generic, TypeVar, Type, List, Dict
+from typing import TypeVar, Type, List, Dict, Union
 from enum import Enum, EnumMeta
 from typing_extensions import Protocol, runtime
 
@@ -21,6 +21,50 @@ def serialize(obj: object, *, as_type: Type = None):
     return _convert_from.dispatch(_type)(obj)
 
 
+def _is_generic_type(t: Type) -> bool:
+    """
+    Returns whether a given type is a generic type
+    """
+    return (
+        hasattr(t, "__parameters__")
+        and hasattr(t, "__origin__")
+        and hasattr(t, "__args__")
+    )
+
+
+def _get_runtime_type(obj, t: Type) -> Type:
+    """
+    Returns the matching runtime type for an object.
+    If obj doesn't match the given t excepts with a TypeError.
+    """
+    # NewType
+    if hasattr(t, "__supertype__"):
+        return _get_runtime_type(obj, t.__supertype__)
+
+    if _is_generic_type(t):
+        args = t.__args__
+        origin = t.__origin__
+
+        if origin is Union:
+            for arg in args:
+                try:
+                    runtime_type = _get_runtime_type(obj, arg)
+                    return runtime_type
+                except TypeError:
+                    continue
+            raise TypeError(f"{obj} didn't match any of the types of {t}")
+        else:
+            if isinstance(obj, origin):
+                return origin
+            else:
+                raise TypeError(f'Object "{obj}" not of expected type {t}')
+
+    if isinstance(obj, t) or isinstance(t, EnumMeta):
+        return t
+    else:
+        raise TypeError(f'Object "{obj}" not of expected type {t}')
+
+
 def _convert_to(obj, t):
     kwargs = {}
 
@@ -35,34 +79,29 @@ def _convert_to(obj, t):
                 kwargs[f.name] = _convert_to(value, f.type)
         return t(**kwargs)
 
-    elif hasattr(t, "__origin__"):  # i.e List from typing
-        args = t.__args__
-        real_type = t.__origin__
+    runtime_type = _get_runtime_type(obj, t)
 
-        # validate
-        if not isinstance(obj, real_type):
-            raise TypeError(f'Object "{obj}" not of expected type {real_type}')
+    if runtime_type in {list, List}:
+        item_type, = t.__args__
+        return [_convert_to(item, item_type) for item in obj]
 
-        if real_type in {list, List}:
-            return [_convert_to(i, args[0]) for i in obj]
-        elif real_type in {dict, Dict}:
-            return {
-                _convert_to(k, args[0]): _convert_to(v, args[1]) for k, v in obj.items()
-            }
-        else:
-            raise TypeError(
-                f"Type {real_type} currently not supported by howard. "
-                "Consider making a PR."
-            )
-    elif isinstance(t, EnumMeta):
+    elif runtime_type in {dict, Dict}:
+        key_type, value_type = t.__args__
+        return {
+            _convert_to(key, key_type): _convert_to(value, value_type)
+            for key, value in obj.items()
+        }
+
+    elif isinstance(runtime_type, EnumMeta):
         return t(obj)
 
-    elif t in (int, str, bool):
-        if not isinstance(obj, t):
-            raise TypeError(f'Object "{obj}" not of expected type {t}')
+    elif runtime_type in (int, str, bool):
         return obj
+
     else:
-        raise TypeError(f"Unsupported type {t}")
+        raise TypeError(
+            f"Type {t} currently not supported by howard. " "Consider making a PR."
+        )
 
 
 @runtime
