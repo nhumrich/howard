@@ -8,20 +8,12 @@ from typing_extensions import Protocol, runtime
 T = TypeVar("T", bound=Type)
 
 
-def from_dict(d: dict, t: T) -> T:
-    if not isinstance(d, dict):
-        raise TypeError("First argument must be of type dict")
-    if not dataclasses.is_dataclass(t):
-        raise TypeError("Second argument must be a dataclass")
-
+def deserialize(d, t: T) -> T:
     return _convert_to(d, t)
 
 
-def to_dict(obj: object, *, as_type: Type = None) -> dict:
+def serialize(obj: object, *, as_type: Type = None):
     _type = as_type or type(obj)
-
-    if not dataclasses.is_dataclass(_type) and _type is not dataclasses.dataclass:
-        raise TypeError("Argument must be a dataclass")
 
     if _type is dataclasses.dataclass:
         _type = DataClass
@@ -32,8 +24,8 @@ def to_dict(obj: object, *, as_type: Type = None) -> dict:
 def _convert_to(obj, t):
     kwargs = {}
 
-    if hasattr(t, "from_dict"):
-        return t.from_dict(obj)
+    if hasattr(t, "__deserialize__"):
+        return t.__deserialize__(obj)
 
     elif dataclasses.is_dataclass(t):
         for f in dataclasses.fields(t):
@@ -84,8 +76,8 @@ class DataClass(Protocol):
 
 
 @runtime
-class CustomToDict(DataClass, Protocol):
-    def to_dict(self):
+class CustomSerialize(DataClass, Protocol):
+    def __serialize__(self):
         pass
 
 
@@ -94,9 +86,9 @@ def _convert_from(obj):
     raise TypeError(f"Unsupported type {type(obj)}")
 
 
-@_convert_from.register(CustomToDict)
+@_convert_from.register(CustomSerialize)
 def _convert_from_custom_dict(obj):
-    return obj.to_dict()
+    return obj.__serialize__()
 
 
 @_convert_from.register(DataClass)

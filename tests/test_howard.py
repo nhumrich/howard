@@ -45,14 +45,14 @@ class UnsupportedFloat:
 
 @dataclass
 class CustomSerializationHand(Hand):
-    def to_dict(self):
-        return {"_id": self.hand_id, "cards": list(map(howard.to_dict, self.cards))}
+    def __serialize__(self):
+        return {"_id": self.hand_id, "cards": list(map(howard.serialize, self.cards))}
 
     @classmethod
-    def from_dict(cls, _dict):
+    def __deserialize__(cls, _dict):
         return cls(
             hand_id=_dict["_id"],
-            cards=[howard.from_dict(card_dict, Card) for card_dict in _dict["cards"]],
+            cards=[howard.deserialize(card_dict, Card) for card_dict in _dict["cards"]],
         )
 
 
@@ -66,14 +66,14 @@ class PartyWithCustomSerializationHand:
     "d, t", [({"hand_id": 2, "cards": [{"rank": 2, "suit": "c"}]}, Hand)]
 )
 def test_dict_is_same_coming_back(d, t):
-    obj = howard.from_dict(d, t)
+    obj = howard.deserialize(d, t)
     assert obj
-    assert d == howard.to_dict(obj)
+    assert d == howard.serialize(obj)
 
 
 def test_hand_is_what_we_expect():
     d = {"hand_id": 2, "cards": [{"rank": 2, "suit": "c"}, {"rank": 10, "suit": "h"}]}
-    obj = howard.from_dict(d, Hand)
+    obj = howard.deserialize(d, Hand)
 
     assert isinstance(obj, Hand)
     assert obj.hand_id == 2
@@ -84,7 +84,7 @@ def test_hand_is_what_we_expect():
 
 def test_hand_without_card():
     d = {"hand_id": 1}
-    obj = howard.from_dict(d, Hand)
+    obj = howard.deserialize(d, Hand)
 
     assert isinstance(obj, Hand)
     assert len(obj.cards) == 0
@@ -94,37 +94,37 @@ def test_hand_without_card():
 def test_unknown_field():
     d = {"hand_i": 2}
     with pytest.raises(Exception):
-        howard.from_dict(d, Hand)
+        howard.deserialize(d, Hand)
 
 
 def test_unsupported_type():
     with pytest.raises(TypeError):
-        howard.from_dict({"n": 2}, UnsupportedFloat)
+        howard.deserialize({"n": 2}, UnsupportedFloat)
 
 
 def test_float_instead_of_int():
     d = {"hand_id": 2.5}
     with pytest.raises(TypeError):
-        howard.from_dict(d, Hand)
+        howard.deserialize(d, Hand)
 
 
 def test_unknown_suit():
     d = {"rank": 2, "suit": "a"}
 
     with pytest.raises(Exception):
-        howard.from_dict(d, Card)
+        howard.deserialize(d, Card)
 
 
 def test_dict_instead_of_list_in_hand():
     d = {"cards": {"1": {"rank": 2, "suit": "c"}}}
 
     with pytest.raises(TypeError):
-        howard.from_dict(d, Hand)
+        howard.deserialize(d, Hand)
 
 
 def test_normal_dict():
     d = {"scores": {"John": 3, "Joe": -1}}
-    obj = howard.from_dict(d, Score)
+    obj = howard.deserialize(d, Score)
 
     assert isinstance(obj, Score)
     assert obj.scores["John"] == 3
@@ -145,7 +145,7 @@ def test_dict_of_hands():
     }
     d = {"party_id": 1, "players": {"John": hand1, "Joe": hand2}}
 
-    obj = howard.from_dict(d, Party)
+    obj = howard.deserialize(d, Party)
 
     assert isinstance(obj, Party)
     assert obj.party_id == 1
@@ -170,7 +170,7 @@ def test_dict_of_hands():
     }
     d = {"party_id": 1, "players": {"John": hand1, "Joe": hand2}}
 
-    obj = howard.from_dict(d, Party)
+    obj = howard.deserialize(d, Party)
 
     assert isinstance(obj, Party)
     assert obj.party_id == 1
@@ -192,7 +192,7 @@ def test_dict_of_custom_deserialization_hands():
     hand2 = {"_id": 2, "cards": [{"rank": 2, "suit": "c"}, {"rank": 10, "suit": "h"}]}
     d = {"party_id": 1, "players": {"John": hand1, "Joe": hand2}}
 
-    obj = howard.from_dict(d, PartyWithCustomSerializationHand)
+    obj = howard.deserialize(d, PartyWithCustomSerializationHand)
 
     assert isinstance(obj, PartyWithCustomSerializationHand)
     assert obj.party_id == 1
@@ -230,9 +230,9 @@ def test_dict_of_custom_serialization_hands():
     }
     hand2 = {"_id": 2, "cards": [{"rank": 2, "suit": "c"}, {"rank": 10, "suit": "h"}]}
     d = {"party_id": 1, "players": {"John": hand1, "Joe": hand2}}
-    assert howard.to_dict(obj) == d
+    assert howard.serialize(obj) == d
 
-    obj = howard.from_dict(d, PartyWithCustomSerializationHand)
+    obj = howard.deserialize(d, PartyWithCustomSerializationHand)
 
     assert isinstance(obj, PartyWithCustomSerializationHand)
     assert obj.party_id == 1
@@ -247,12 +247,12 @@ class Person:
     name: str
     age: int
 
-    def to_dict(self):
-        return {"type": "Person", **howard.to_dict(self, as_type=dataclass)}
+    def __serialize__(self):
+        return {"type": "Person", **howard.serialize(self, as_type=dataclass)}
 
 
 def test_dict_of_as_type():
     person = Person(name="Steve", age=56)
-    d = howard.to_dict(person)
+    d = howard.serialize(person)
     assert d == {"type": "Person", "name": "Steve", "age": 56}
-    assert howard.from_dict(d, Person) == person
+    assert howard.deserialize(d, Person) == person
