@@ -1,9 +1,11 @@
 import dataclasses
+from functools import singledispatch
 from typing import Generic, TypeVar, Type, List, Dict
-from enum import EnumMeta
+from enum import Enum, EnumMeta
+from typing_extensions import Protocol, runtime
 
 
-T = TypeVar('T', bound=Type)
+T = TypeVar("T", bound=Type)
 
 
 def from_dict(d: dict, t: T) -> T:
@@ -15,11 +17,16 @@ def from_dict(d: dict, t: T) -> T:
     return _convert_to(d, t)
 
 
-def to_dict(obj: object) -> dict:
-    if not dataclasses.is_dataclass(obj):
-        raise TypeError('Argument must be a dataclass')
+def to_dict(obj: object, *, as_type: Type = None) -> dict:
+    _type = as_type or type(obj)
 
-    return _convert_from(obj)
+    if not dataclasses.is_dataclass(_type) and _type is not dataclasses.dataclass:
+        raise TypeError("Argument must be a dataclass")
+
+    if _type is dataclasses.dataclass:
+        _type = DataClass
+
+    return _convert_from.dispatch(_type)(obj)
 
 
 def _convert_to(obj, t):
@@ -36,7 +43,7 @@ def _convert_to(obj, t):
                 kwargs[f.name] = _convert_to(value, f.type)
         return t(**kwargs)
 
-    elif hasattr(t, '__origin__'):  # i.e List from typing
+    elif hasattr(t, "__origin__"):  # i.e List from typing
         args = t.__args__
         real_type = t.__origin__
 
@@ -44,13 +51,17 @@ def _convert_to(obj, t):
         if not isinstance(obj, real_type):
             raise TypeError(f'Object "{obj}" not of expected type {real_type}')
 
-        if real_type in { list, List }:
+        if real_type in {list, List}:
             return [_convert_to(i, args[0]) for i in obj]
-        elif real_type in { dict, Dict }:
-            return {_convert_to(k, args[0]): _convert_to(v, args[1]) for k, v in obj.items()}
+        elif real_type in {dict, Dict}:
+            return {
+                _convert_to(k, args[0]): _convert_to(v, args[1]) for k, v in obj.items()
+            }
         else:
-            raise TypeError(f'Type {real_type} currently not supported by howard. '
-                            'Consider making a PR.')
+            raise TypeError(
+                f"Type {real_type} currently not supported by howard. "
+                "Consider making a PR."
+            )
     elif isinstance(t, EnumMeta):
         return t(obj)
 
@@ -59,24 +70,59 @@ def _convert_to(obj, t):
             raise TypeError(f'Object "{obj}" not of expected type {t}')
         return obj
     else:
-        raise TypeError(f'Unsupported type {t}')
+        raise TypeError(f"Unsupported type {t}")
 
 
+@runtime
+class DataClass(Protocol):
+    """
+    A protocol version for dataclasses.is_dataclass
+    """
+
+    # "__dataclass_fields__" == dataclasses._FIELDS
+    __dataclass_fields__: Dict[str, dataclasses.Field]
+
+
+@runtime
+class CustomToDict(DataClass, Protocol):
+    def to_dict(self):
+        pass
+
+
+@singledispatch
 def _convert_from(obj):
-    if hasattr(obj, "to_dict"):
-        return obj.to_dict()
-    elif dataclasses.is_dataclass(obj):
-        d = {}
-        for f in dataclasses.fields(obj):
-            d[f.name] = _convert_from(getattr(obj, f.name))
-        return d
-    elif isinstance(obj, list):
-        return [_convert_from(i) for i in obj]
-    elif isinstance(obj, dict):
-        return {k: _convert_from(v) for k, v in obj.items()}
-    elif isinstance(obj.__class__, EnumMeta):
-        return _convert_from(obj.value)
-    elif type(obj) in (int, str, bool):
-        return obj
-    else:
-        raise TypeError(f'Unsupported type {type(obj)}')
+    raise TypeError(f"Unsupported type {type(obj)}")
+
+
+@_convert_from.register(CustomToDict)
+def _convert_from_custom_dict(obj):
+    return obj.to_dict()
+
+
+@_convert_from.register(DataClass)
+def _convert_from_dataclass(obj):
+    return {
+        f.name: _convert_from(getattr(obj, f.name)) for f in dataclasses.fields(obj)
+    }
+
+
+@_convert_from.register(list)
+def _convert_from_list(obj):
+    return [_convert_from(i) for i in obj]
+
+
+@_convert_from.register(dict)
+def _convert_from_dict(obj):
+    return {k: _convert_from(v) for k, v in obj.items()}
+
+
+@_convert_from.register(Enum)
+def _convert_from_enum(obj):
+    return _convert_from(obj.value)
+
+
+@_convert_from.register(int)
+@_convert_from.register(str)
+@_convert_from.register(bool)
+def _convert_from_primitive(obj):
+    return obj

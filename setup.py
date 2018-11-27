@@ -10,6 +10,7 @@ setup(
     version='1.0.3',
     packages=['howard'],
     long_description=long_description,
+    install_requires=['typing_extensions'],
     url='https://github.com/nhumrich/howard',
     long_description_content_type='text/markdown',
     license='MIT',
