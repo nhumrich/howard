@@ -1,9 +1,8 @@
 # howard
+
 Python datatype marshalling
 
-
-This libary marshalls serialized objects (think JSON) into instances of defined containers and dataclasses and back.
-
+This libary marshalls serialized objects (think JSON) into instances of defined classes and back.
 
 i.e.
 
@@ -24,7 +23,6 @@ assert person.name == 'Bob'
 assert person.age == 24
 assert howard.serialize(person) == my_dict
 ```
-
 
 to install:
 

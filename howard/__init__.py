@@ -76,9 +76,14 @@ class DataClass(Protocol):
 
 
 @runtime
-class CustomSerialize(DataClass, Protocol):
+class Serializable(Protocol):
     def __serialize__(self):
         pass
+
+
+@runtime
+class SerializableDataClass(Serializable, DataClass, Protocol):
+    pass
 
 
 @singledispatch
@@ -86,7 +91,8 @@ def _convert_from(obj):
     raise TypeError(f"Unsupported type {type(obj)}")
 
 
-@_convert_from.register(CustomSerialize)
+@_convert_from.register(Serializable)
+@_convert_from.register(SerializableDataClass)
 def _convert_from_custom_dict(obj):
     return obj.__serialize__()
 

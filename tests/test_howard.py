@@ -256,3 +256,31 @@ def test_dict_of_as_type():
     d = howard.serialize(person)
     assert d == {"type": "Person", "name": "Steve", "age": 56}
     assert howard.deserialize(d, Person) == person
+
+
+class Workplace:
+    employees: List[Person]
+
+    def __init__(self, employees):
+        self.employees = employees
+
+    def __eq__(self, other):
+        return self.employees == other.employees
+
+    def __serialize__(self):
+        return {"type": "Workplace", "employees": howard.serialize(self.employees)}
+
+    @classmethod
+    def __deserialize__(cls, _dict):
+        return cls(employees=howard.deserialize(_dict["employees"], List[Person]))
+
+
+def test_dict_of_non_dataclass():
+    steve = Person(name="Steve", age=56)
+    workplace = Workplace(employees=[steve])
+    d = howard.serialize(workplace)
+    assert d == {
+        "type": "Workplace",
+        "employees": [{"type": "Person", "name": "Steve", "age": 56}],
+    }
+    assert howard.deserialize(d, Workplace) == workplace
