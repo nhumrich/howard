@@ -19,9 +19,10 @@ class Person:
 
 
 my_dict = {'name': 'Bob', 'age': 24}
-person = howard.fromdict(my_dict, Person)
+person = howard.deserialize(my_dict, Person)
 assert person.name == 'Bob'
 assert person.age == 24
+assert howard.serialize(person) == my_dict
 ```
 
 
