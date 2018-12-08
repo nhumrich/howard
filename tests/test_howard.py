@@ -295,3 +295,36 @@ def test_generic_and_new_type():
     assert serialized == "42"
     assert howard.deserialize(serialized, ID) == "42"
 
+
+from datetime import datetime
+
+
+class ISODatetime(datetime):
+    """
+    datetime with iso serialization
+    """
+
+    @classmethod
+    def __deserialize__(cls, iso_format):
+        return cls.fromisoformat(iso_format)
+
+    def __serialize__(self):
+        return self.isoformat()
+
+
+@dataclass(frozen=True)
+class DatetimeRange:
+    start: ISODatetime
+    end: ISODatetime
+
+
+def test_TODO_NAME():
+    now = ISODatetime.now()
+    serialized = howard.serialize(now)
+    deserialized = howard.deserialize(serialized, Union[DatetimeRange, ISODatetime])
+    assert deserialized == now
+
+    _range = DatetimeRange(now, ISODatetime(1970, 1, 1))
+    serialized = howard.serialize(_range)
+    deserialized = howard.deserialize(serialized, Union[DatetimeRange, ISODatetime])
+    assert deserialized == _range

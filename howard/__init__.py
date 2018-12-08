@@ -1,3 +1,4 @@
+import abc
 import dataclasses
 from functools import singledispatch
 from typing import TypeVar, Type, List, Dict, Union
@@ -37,27 +38,13 @@ def _get_runtime_type(obj, t: Type) -> Type:
     Returns the matching runtime type for an object.
     If obj doesn't match the given t excepts with a TypeError.
     """
-    # NewType
-    if hasattr(t, "__supertype__"):
-        return _get_runtime_type(obj, t.__supertype__)
-
     if _is_generic_type(t):
-        args = t.__args__
         origin = t.__origin__
 
-        if origin is Union:
-            for arg in args:
-                try:
-                    runtime_type = _get_runtime_type(obj, arg)
-                    return runtime_type
-                except TypeError:
-                    continue
-            raise TypeError(f"{obj} didn't match any of the types of {t}")
+        if origin is Union or isinstance(obj, origin):
+            return origin
         else:
-            if isinstance(obj, origin):
-                return origin
-            else:
-                raise TypeError(f'Object "{obj}" not of expected type {t}')
+            raise TypeError(f'Object "{obj}" not of expected type {t}')
 
     if isinstance(obj, t) or isinstance(t, EnumMeta):
         return t
@@ -79,6 +66,10 @@ def _convert_to(obj, t):
                 kwargs[f.name] = _convert_to(value, f.type)
         return t(**kwargs)
 
+    # unwrap NewType
+    if hasattr(t, "__supertype__"):
+        t = t.__supertype__
+
     runtime_type = _get_runtime_type(obj, t)
 
     if runtime_type in {list, List}:
@@ -92,6 +83,15 @@ def _convert_to(obj, t):
             for key, value in obj.items()
         }
 
+    elif runtime_type is Union:
+        args = t.__args__
+        for arg in args:
+            try:
+                return _convert_to(obj, arg)
+            except TypeError:
+                continue
+        raise TypeError(f"{obj} didn't match any of the types of {t}")
+
     elif isinstance(runtime_type, EnumMeta):
         return t(obj)
 
@@ -104,14 +104,14 @@ def _convert_to(obj, t):
         )
 
 
-@runtime
-class DataClass(Protocol):
+class DataClass(abc.ABC):
     """
-    A protocol version for dataclasses.is_dataclass
+    A class version for dataclasses.is_dataclass
     """
 
-    # "__dataclass_fields__" == dataclasses._FIELDS
-    __dataclass_fields__: Dict[str, dataclasses.Field]
+    @classmethod
+    def __subclasshook__(cls, subclass):
+        return dataclasses.is_dataclass(subclass)
 
 
 @runtime
@@ -120,9 +120,9 @@ class Serializable(Protocol):
         pass
 
 
-@runtime
-class SerializableDataClass(Serializable, DataClass, Protocol):
-    pass
+class SerializableDataClass(DataClass, Serializable):
+    def __serialize__(self):
+        pass
 
 
 @singledispatch

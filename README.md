@@ -29,3 +29,16 @@ to install:
 ```bash
 pip install howard
 ```
+
+### Development
+
+Requires: pyenv & pipenv
+
+```bash
+# Install Python 3.7
+pyenv install 3.7;
+# Create a Python 3.7 venv
+PIPENV_VENV_IN_PROJECT=1 pipenv install --python $(pyenv root)/versions/3.7.0/bin/python;
+# Install dependencies
+pipenv install --dev;
+```
