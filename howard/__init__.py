@@ -78,6 +78,11 @@ def _convert_to(obj, t):
 
     elif runtime_type in {tuple, Tuple} and _is_generic_type(t):
         item_types = t.__args__
+
+        if len(item_types) == 2 and item_types[1] == Ellipsis:
+            item_type, _ = item_types
+            return tuple(_convert_to(item, item_type) for item in obj)
+
         return tuple(
             _convert_to(item, item_type) for item, item_type in zip(obj, item_types)
         )

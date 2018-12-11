@@ -366,6 +366,22 @@ def test_tuple_with_item():
     assert deserialized == o
 
 
+def test_tuple_with_variable_items():
+    o = (
+        Card(rank=10, suit=Suit.heart),
+        Card(rank=9, suit=Suit.spade),
+        Card(rank=1, suit=Suit.club),
+    )
+    serializeed = howard.serialize(o)
+    assert serializeed == (
+        {"rank": 10, "suit": "h"},
+        {"rank": 9, "suit": "s"},
+        {"rank": 1, "suit": "c"},
+    )
+    deserialized = howard.deserialize(serializeed, Tuple[Card, ...])
+    assert deserialized == o
+
+
 def test_float():
     d = 12.5
     serialized = howard.serialize(d)
