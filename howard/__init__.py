@@ -2,6 +2,7 @@ import abc
 import dataclasses
 from functools import singledispatch
 from typing import TypeVar, Type, List, Tuple, Dict, Union
+from collections.abc import Mapping
 from enum import Enum, EnumMeta
 from typing_extensions import Protocol, runtime
 
@@ -59,11 +60,32 @@ def _convert_to(obj, t):
         return t.__deserialize__(obj)
 
     elif dataclasses.is_dataclass(t):
-        for f in dataclasses.fields(t):
+        if not isinstance(obj, Mapping):
+            raise TypeError(f"Serialized value for dataclass {t} must be a Mapping")
+
+        fields = dataclasses.fields(t)
+
+        for f in fields:
             if f.name in obj:
                 # get value
                 value = obj[f.name]
                 kwargs[f.name] = _convert_to(value, f.type)
+            elif (
+                f.default_factory == dataclasses._MISSING_TYPE
+                and f.default == dataclasses._MISSING_TYPE
+                and f.init is True
+            ):
+                raise TypeError(
+                    f"Mapping {obj} is missing field {f.name} required by dataclass {t}"
+                )
+
+        if len(obj) != len(kwargs):
+            for key in obj:
+                if key not in kwargs:
+                    raise TypeError(
+                        f"Key {key} appears in mapping {obj} but is not required by dataclass {t}"
+                    )
+
         return t(**kwargs)
 
     # unwrap NewType

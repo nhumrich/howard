@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 import dataclasses
 from enum import Enum
-from typing import List, Tuple, Dict, Union, NewType
+from typing import Any, List, Tuple, Dict, Union, NewType
 
 import pytest
 
@@ -250,6 +250,10 @@ class Person:
     def __serialize__(self):
         return {"type": "Person", **howard.serialize(self, as_type=dataclass)}
 
+    @classmethod
+    def __deserialize__(cls, _dict):
+        return Person(**{key: value for key, value in _dict.items() if key != "type"})
+
 
 def test_dict_of_as_type():
     person = Person(name="Steve", age=56)
@@ -388,3 +392,24 @@ def test_float():
     assert serialized == 12.5
     deserialized = howard.deserialize(serialized, float)
     assert deserialized == d
+
+
+@dataclass
+class Polymorphic:
+    value: Any
+
+
+@dataclass
+class Worker:
+    name: str
+    age: int
+    job: str
+
+
+def test_polymorphism():
+    o = Worker("Steve", 36, "Programmer")
+    serialized = howard.serialize(o)
+    deserialized = howard.deserialize(serialized, Union[Worker, Person])
+    assert deserialized == o
+    deserialized = howard.deserialize(serialized, Union[Person, Worker])
+    assert deserialized == o
