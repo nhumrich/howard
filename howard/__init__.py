@@ -1,7 +1,7 @@
 import abc
 import dataclasses
 from functools import singledispatch
-from typing import TypeVar, Type, List, Dict, Union
+from typing import TypeVar, Type, List, Tuple, Dict, Union
 from enum import Enum, EnumMeta
 from typing_extensions import Protocol, runtime
 
@@ -72,9 +72,18 @@ def _convert_to(obj, t):
 
     runtime_type = _get_runtime_type(obj, t)
 
-    if runtime_type in {list, List}:
+    if runtime_type in {list, List} and _is_generic_type(t):
         item_type, = t.__args__
         return [_convert_to(item, item_type) for item in obj]
+
+    elif runtime_type in {tuple, Tuple} and _is_generic_type(t):
+        item_types = t.__args__
+        return tuple(
+            _convert_to(item, item_type) for item, item_type in zip(obj, item_types)
+        )
+
+    elif runtime_type in {list, tuple}:
+        return obj
 
     elif runtime_type in {dict, Dict}:
         key_type, value_type = t.__args__
@@ -146,6 +155,11 @@ def _convert_from_dataclass(obj):
 @_convert_from.register(list)
 def _convert_from_list(obj):
     return [_convert_from(i) for i in obj]
+
+
+@_convert_from.register(tuple)
+def _convert_from_tuple(obj):
+    return tuple(_convert_from(i) for i in obj)
 
 
 @_convert_from.register(dict)

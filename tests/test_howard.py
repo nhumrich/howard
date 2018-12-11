@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 import dataclasses
 from enum import Enum
-from typing import List, Dict, Union, NewType
+from typing import List, Tuple, Dict, Union, NewType
 
 import pytest
 
@@ -328,3 +328,39 @@ def test_TODO_NAME():
     serialized = howard.serialize(_range)
     deserialized = howard.deserialize(serialized, Union[DatetimeRange, ISODatetime])
     assert deserialized == _range
+
+
+def test_tuple():
+    o = (1, 2)
+    serialized = howard.serialize()
+    assert serialized == (1, 2)
+    deserialized = howard.deserialize(serialized, tuple)
+    assert deserialized == o
+
+
+def test_tuple_with_item():
+    o = (
+        Hand(
+            hand_id=1,
+            cards=[
+                Card(rank=10, suit=Suit.heart),
+                Card(rank=9, suit=Suit.spade),
+                Card(rank=1, suit=Suit.club),
+            ],
+        ),
+        Card(rank=2, suit=Suit.heart),
+    )
+    serialized = howard.serialize(o)
+    assert serialized == (
+        {
+            "hand_id": 1,
+            "cards": [
+                {"rank": 10, "suit": "h"},
+                {"rank": 9, "suit": "s"},
+                {"rank": 1, "suit": "c"},
+            ],
+        },
+        {"rank": 2, "suit": "h"},
+    )
+    deserialized = howard.deserialize(serialized, Tuple[Hand, Card])
+    assert deserialized == o
