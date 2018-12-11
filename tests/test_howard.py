@@ -439,3 +439,5 @@ def test_cast():
 
     assert deserialized == o
 
+
+howard.deserialize("Hello", Union[int, float])

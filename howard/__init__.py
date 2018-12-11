@@ -137,12 +137,20 @@ def _convert_to(obj, t, *, cast=None):
 
     elif runtime_type is Union:
         args = t.__args__
+        errors: Dict[Type, TypeError] = {}
         for arg in args:
             try:
                 return _convert_to(obj, arg)
-            except TypeError:
-                continue
-        raise TypeError(f"{obj} didn't match any of the types of {t}")
+            except TypeError as error:
+                errors[arg] = error
+
+        raise TypeError(
+            f"{obj} didn't match any of the types of {t}.\n"
+            + "\n".join(
+                f"TypeError({error}) was raised for type {_type}"
+                for _type, error in errors.items()
+            )
+        )
 
     elif isinstance(runtime_type, EnumMeta):
         return t(obj)
