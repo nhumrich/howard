@@ -413,3 +413,29 @@ def test_polymorphism():
     assert deserialized == o
     deserialized = howard.deserialize(serialized, Union[Person, Worker])
     assert deserialized == o
+
+
+def test_cast():
+    o = CustomSerializationHand(
+        hand_id=1,
+        cards=[
+            Card(rank=10, suit=Suit.heart),
+            Card(rank=9, suit=Suit.spade),
+            Card(rank=1, suit=Suit.club),
+        ],
+    )
+    serialized = {
+        "hand_id": 1,
+        "cards": [
+            {"rank": 10, "suit": "h"},
+            {"rank": 9, "suit": "s"},
+            {"rank": 1, "suit": "c"},
+        ],
+    }
+
+    deserialized = howard.deserialize(
+        serialized, CustomSerializationHand, cast=dataclass
+    )
+
+    assert deserialized == o
+

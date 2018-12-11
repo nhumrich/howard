@@ -10,8 +10,11 @@ from typing_extensions import Protocol, runtime
 T = TypeVar("T", bound=Type)
 
 
-def deserialize(d, t: T) -> T:
-    return _convert_to(d, t)
+def deserialize(d, t: T, *, cast: Type = None) -> T:
+    if cast is dataclasses.dataclass:
+        cast = DataClass
+
+    return _convert_to(d, t, cast=cast)
 
 
 def serialize(obj: object, *, as_type: Type = None):
@@ -53,13 +56,26 @@ def _get_runtime_type(obj, t: Type) -> Type:
         raise TypeError(f'Object "{obj}" not of expected type {t}')
 
 
-def _convert_to(obj, t):
+@runtime
+class Deserializable(Protocol):
+    @classmethod
+    def __deserialize__(cls, o):
+        pass
+
+
+def _convert_to(obj, t, *, cast=None):
+    if cast:
+        if not issubclass(t, cast):
+            raise ValueError(
+                f"Cannot cast {t} to {cast} because {t} is not a subclass of {cast}"
+            )
+
     kwargs = {}
 
-    if hasattr(t, "__deserialize__"):
+    if cast is None and hasattr(t, "__deserialize__") or cast is Deserializable:
         return t.__deserialize__(obj)
 
-    elif dataclasses.is_dataclass(t):
+    elif cast is None and dataclasses.is_dataclass(t) or cast is DataClass:
         if not isinstance(obj, Mapping):
             raise TypeError(f"Serialized value for dataclass {t} must be a Mapping")
 
