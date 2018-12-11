@@ -44,16 +44,9 @@ def _get_runtime_type(obj, t: Type) -> Type:
     """
     if _is_generic_type(t):
         origin = t.__origin__
+        return origin
 
-        if origin is Union or isinstance(obj, origin):
-            return origin
-        else:
-            raise TypeError(f'Object "{obj}" not of expected type {t}')
-
-    if isinstance(obj, t) or isinstance(t, EnumMeta):
-        return t
-    else:
-        raise TypeError(f'Object "{obj}" not of expected type {t}')
+    return t
 
 
 @runtime
@@ -156,6 +149,9 @@ def _convert_to(obj, t, *, cast=None):
         return t(obj)
 
     elif runtime_type in (int, float, str, bool):
+        if not isinstance(obj, runtime_type):
+            raise TypeError(f"{obj} didn't match {runtime_type}")
+
         return obj
 
     else:
