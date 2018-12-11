@@ -104,7 +104,7 @@ def _convert_to(obj, t):
     elif isinstance(runtime_type, EnumMeta):
         return t(obj)
 
-    elif runtime_type in (int, str, bool):
+    elif runtime_type in (int, float, str, bool):
         return obj
 
     else:
@@ -173,6 +173,7 @@ def _convert_from_enum(obj):
 
 
 @_convert_from.register(int)
+@_convert_from.register(float)
 @_convert_from.register(str)
 @_convert_from.register(bool)
 def _convert_from_primitive(obj):

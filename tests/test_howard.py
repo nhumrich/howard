@@ -332,7 +332,7 @@ def test_TODO_NAME():
 
 def test_tuple():
     o = (1, 2)
-    serialized = howard.serialize()
+    serialized = howard.serialize(o)
     assert serialized == (1, 2)
     deserialized = howard.deserialize(serialized, tuple)
     assert deserialized == o
@@ -364,3 +364,11 @@ def test_tuple_with_item():
     )
     deserialized = howard.deserialize(serialized, Tuple[Hand, Card])
     assert deserialized == o
+
+
+def test_float():
+    d = 12.5
+    serialized = howard.serialize(d)
+    assert serialized == 12.5
+    deserialized = howard.deserialize(serialized, float)
+    assert deserialized == d
