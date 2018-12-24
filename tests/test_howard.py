@@ -438,3 +438,21 @@ def test_cast():
     )
 
     assert deserialized == o
+
+
+SuperHand = NewType("SuperHand", CustomSerializationHand)
+
+
+def test_new_id_and_custom_deserialize():
+    o = SuperHand(
+        CustomSerializationHand(
+            hand_id=1,
+            cards=[
+                Card(rank=10, suit=Suit.heart),
+                Card(rank=9, suit=Suit.spade),
+                Card(rank=1, suit=Suit.club),
+            ],
+        )
+    )
+    d = howard.serialize(o)
+    assert howard.deserialize(d, SuperHand) == o

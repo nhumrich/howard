@@ -57,6 +57,10 @@ class Deserializable(Protocol):
 
 
 def _convert_to(obj, t, *, cast=None):
+    # unwrap NewType
+    if hasattr(t, "__supertype__"):
+        t = t.__supertype__
+
     if cast:
         if not issubclass(t, cast):
             raise ValueError(
@@ -96,10 +100,6 @@ def _convert_to(obj, t, *, cast=None):
                     )
 
         return t(**kwargs)
-
-    # unwrap NewType
-    if hasattr(t, "__supertype__"):
-        t = t.__supertype__
 
     runtime_type = _get_runtime_type(obj, t)
 
