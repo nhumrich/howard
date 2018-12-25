@@ -1,9 +1,8 @@
 import abc
 import dataclasses
-from functools import singledispatch
-from copy import copy
+from functools import singledispatch, partial
 from enum import Enum
-from typing import Optional, Type, Callable, Any
+from typing import Type, Callable, Union
 from typing_extensions import Protocol, runtime
 from .type_util import DataClass
 
@@ -19,63 +18,64 @@ class SerializableDataClass(DataClass, Serializable):
         pass
 
 
-@singledispatch
-def _convert_from(obj):
+def _convert_from(obj, *, serializer):
     raise TypeError(f"Unsupported type {type(obj)}")
 
 
-@_convert_from.register(Serializable)
-@_convert_from.register(SerializableDataClass)
-def _convert_from_custom_dict(obj):
+def _convert_from_serializable(obj, *, serializer):
     return obj.__serialize__()
 
 
-@_convert_from.register(DataClass)
-def _convert_from_dataclass(obj):
+def _convert_from_dataclass(obj, *, serializer):
     return {
-        f.name: _convert_from(getattr(obj, f.name)) for f in dataclasses.fields(obj)
+        f.name: serializer.serialize(getattr(obj, f.name))
+        for f in dataclasses.fields(obj)
     }
 
 
-@_convert_from.register(list)
-def _convert_from_list(obj):
-    return [_convert_from(i) for i in obj]
+def _convert_from_list(obj, *, serializer):
+    return [serializer.serialize(i) for i in obj]
 
 
-@_convert_from.register(tuple)
-def _convert_from_tuple(obj):
-    return tuple(_convert_from(i) for i in obj)
+def _convert_from_tuple(obj, *, serializer):
+    return tuple(serializer.serialize(i) for i in obj)
 
 
-@_convert_from.register(dict)
-def _convert_from_dict(obj):
-    return {k: _convert_from(v) for k, v in obj.items()}
+def _convert_from_dict(obj, *, serializer):
+    return {k: serializer.serialize(v) for k, v in obj.items()}
 
 
-@_convert_from.register(Enum)
-def _convert_from_enum(obj):
-    return _convert_from(obj.value)
+def _convert_from_enum(obj, *, serializer):
+    return serializer.serialize(obj.value)
 
 
-@_convert_from.register(int)
-@_convert_from.register(float)
-@_convert_from.register(str)
-@_convert_from.register(bool)
-def _convert_from_primitive(obj):
+def _convert_from_primitive(obj, *, serializer):
     return obj
 
 
 class Serializer:
     def __init__(self):
-        self._convert_from = copy(_convert_from)
+        self._convert_from = singledispatch(_convert_from)
+        self._convert_from.register(Serializable)(_convert_from_serializable)
+        self._convert_from.register(SerializableDataClass)(_convert_from_dataclass)
+        self._convert_from.register(DataClass)(_convert_from_dataclass)
+        self._convert_from.register(list)(_convert_from_list)
+        self._convert_from.register(tuple)(_convert_from_tuple)
+        self._convert_from.register(dict)(_convert_from_dict)
+        self._convert_from.register(Enum)(_convert_from_enum)
+        self._convert_from.register(int)(_convert_from_primitive)
+        self._convert_from.register(float)(_convert_from_primitive)
+        self._convert_from.register(str)(_convert_from_primitive)
+        self._convert_from.register(bool)(_convert_from_primitive)
 
-    def serialize(self, obj: object, *, as_type: Optional[Type] = None):
-        _type = as_type or type(obj)
+    def serialize(self, obj: object):
+        return self.dispatch(type(obj))(obj)
 
+    def dispatch(self, _type: Union[object, Type]) -> Callable:
         if _type is dataclasses.dataclass:
             _type = DataClass
 
-        return self._convert_from.dispatch(_type)(obj)
+        return partial(self._convert_from.dispatch(_type), serializer=self)
 
-    def register(self, type_serializer: Callable):
-        self._convert_from.register(type_serializer)
+    def register(self, _type: Type):
+        return self._convert_from.register(_type)

@@ -248,7 +248,7 @@ class Person:
     age: int
 
     def __serialize__(self):
-        return {"type": "Person", **howard.serialize(self, as_type=dataclass)}
+        return {"type": "Person", **howard.default_serializer.dispatch(dataclass)(self)}
 
     @classmethod
     def __deserialize__(cls, _dict):
@@ -456,3 +456,27 @@ def test_new_id_and_custom_deserialize():
     )
     d = howard.serialize(o)
     assert howard.deserialize(d, SuperHand) == o
+
+
+class Hipster:
+    def __init__(self, name):
+        self.name = name
+
+
+def test_custom_external_serializer():
+    hipster = Hipster(name="Steve")
+
+    with pytest.raises(TypeError):
+        howard.serialize(hipster)
+
+    serializer = howard.Serializer()
+
+    @serializer.register(Hipster)
+    def serialize_hipster(hipster, *, serializer):
+        return {"n": hipster.name}
+
+    assert serializer.serialize(hipster) == {"n": "Steve"}
+
+    # Make sure default serializer is not polluted
+    with pytest.raises(TypeError):
+        howard.serialize(hipster)
