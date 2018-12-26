@@ -466,8 +466,7 @@ class Hipster:
 def test_custom_external_serializer():
     hipster = Hipster(name="Steve")
 
-    with pytest.raises(TypeError):
-        howard.serialize(hipster)
+    assert howard.serialize(hipster) is hipster
 
     serializer = howard.Serializer()
 
@@ -478,8 +477,7 @@ def test_custom_external_serializer():
     assert serializer.serialize(hipster) == {"n": "Steve"}
 
     # Make sure default serializer is not polluted
-    with pytest.raises(TypeError):
-        howard.serialize(hipster)
+    assert howard.serialize(hipster) is hipster
 
 
 def test_custom_external_deserializer():

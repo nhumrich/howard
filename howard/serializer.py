@@ -19,7 +19,7 @@ class SerializableDataClass(DataClass, Serializable):
 
 
 def _convert_from(obj, *, serializer):
-    raise TypeError(f"Unsupported type {type(obj)}")
+    return obj
 
 
 def _convert_from_serializable(obj, *, serializer):
@@ -49,10 +49,6 @@ def _convert_from_enum(obj, *, serializer):
     return serializer.serialize(obj.value)
 
 
-def _convert_from_primitive(obj, *, serializer):
-    return obj
-
-
 class Serializer:
     def __init__(self):
         self._convert_from = singledispatch(_convert_from)
@@ -63,10 +59,6 @@ class Serializer:
         self._convert_from.register(tuple)(_convert_from_tuple)
         self._convert_from.register(dict)(_convert_from_dict)
         self._convert_from.register(Enum)(_convert_from_enum)
-        self._convert_from.register(int)(_convert_from_primitive)
-        self._convert_from.register(float)(_convert_from_primitive)
-        self._convert_from.register(str)(_convert_from_primitive)
-        self._convert_from.register(bool)(_convert_from_primitive)
 
     def serialize(self, obj: object):
         return self.dispatch(type(obj))(obj)
