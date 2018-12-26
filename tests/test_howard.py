@@ -154,31 +154,6 @@ def test_dict_of_hands():
     assert len(obj.players["John"].cards) == 3
 
 
-def test_dict_of_hands():
-    hand1 = {
-        "hand_id": 1,
-        "cards": [
-            {"rank": 10, "suit": "h"},
-            {"rank": 9, "suit": "s"},
-            {"rank": 1, "suit": "c"},
-        ],
-    }
-    hand2 = {
-        "hand_id": 2,
-        "cards": [{"rank": 2, "suit": "c"}, {"rank": 10, "suit": "h"}],
-    }
-    d = {"party_id": 1, "players": {"John": hand1, "Joe": hand2}}
-
-    obj = howard.deserialize(d, Party)
-
-    assert isinstance(obj, Party)
-    assert obj.party_id == 1
-    assert len(obj.players.items()) == 2
-    assert "John" in obj.players.keys()
-    assert isinstance(obj.players["John"], Hand)
-    assert len(obj.players["John"].cards) == 3
-
-
 def test_dict_of_custom_deserialization_hands():
     hand1 = {
         "_id": 1,
