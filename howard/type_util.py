@@ -14,7 +14,7 @@ def is_generic_type(t: Type) -> bool:
     )
 
 
-def get_runtime_type(obj, t: Type) -> Type:
+def get_runtime_type(t: Type) -> Type:
     """
     Returns the matching runtime type for an object.
     If obj doesn't match the given t excepts with a TypeError.
@@ -22,6 +22,16 @@ def get_runtime_type(obj, t: Type) -> Type:
     if is_generic_type(t):
         origin = t.__origin__
         return origin
+
+    return t
+
+
+def unwrap_new_type(t: Type) -> Type:
+    """
+    Returns wrapped type of NewType
+    """
+    if hasattr(t, "__supertype__"):
+        return t.__supertype__
 
     return t
 

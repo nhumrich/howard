@@ -433,8 +433,8 @@ def test_cast():
         ],
     }
 
-    deserialized = howard.deserialize(
-        serialized, CustomSerializationHand, cast=dataclass
+    deserialized = howard.default_deserializer.dispatch(dataclass)(
+        serialized, CustomSerializationHand
     )
 
     assert deserialized == o
@@ -480,3 +480,25 @@ def test_custom_external_serializer():
     # Make sure default serializer is not polluted
     with pytest.raises(TypeError):
         howard.serialize(hipster)
+
+
+def test_custom_external_deserializer():
+    hipster_dict = {"n": "Steve"}
+
+    with pytest.raises(TypeError):
+        howard.deserialize(hipster_dict, Hipster)
+
+    deserializer = howard.Deserializer()
+
+    @deserializer.register(Hipster)
+    def deserialize_hipster(_dict, type, *, deserializer):
+        return Hipster(name=_dict["n"])
+
+    deserialized = deserializer.deserialize(hipster_dict, Hipster)
+    assert type(deserialized) is Hipster
+    assert vars(deserialized) == {"name": "Steve"}
+
+    # Make sure default serializer is not polluted
+    with pytest.raises(TypeError):
+        howard.deserialize(hipster_dict, Hipster)
+
