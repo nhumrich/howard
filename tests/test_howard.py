@@ -71,13 +71,6 @@ def test_hand_without_card():
     assert len(obj.cards) == 0
 
 
-@pytest.mark.skip(reason="Not implemented")
-def test_unknown_field():
-    d = {'hand_i': 2}
-    with pytest.raises(Exception):
-        howard.from_dict(d, Hand)
-
-
 def test_unsupported_type():
     with pytest.raises(TypeError):
         howard.from_dict({'n': 2}, UnsupportedFloat)
@@ -124,3 +117,28 @@ def test_dict_of_hands():
     assert 'John' in obj.players.keys()
     assert isinstance(obj.players['John'], Hand)
     assert len(obj.players['John'].cards) == 3
+
+def test_strip_out_public():
+    @dataclass
+    class Test2:
+        a: int
+        b: str
+        _c: str
+
+    t = Test2(a=1, b='2', _c='3')
+    result = howard.to_dict(t, public_only=True)
+
+    assert result.get('a') == 1
+    assert result.get('b') == '2'
+    assert '_c' not in result
+
+def test_strip_out_internal_fields():
+    @dataclass
+    class Test3:
+        a: int
+        b: str = field(default='', metadata={'internal': True})
+
+    t = Test3(a=1, b='3')
+    result = howard.to_dict(t)
+    assert 'b' not in result
+
