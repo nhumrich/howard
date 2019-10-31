@@ -71,6 +71,23 @@ def test_hand_without_card():
     assert len(obj.cards) == 0
 
 
+def test_extra_fields_raise_error():
+    d = {'rank': 2, 'suit': 'h', 'exta': 'foo'}
+    with pytest.raises(TypeError):
+        howard.from_dict(d, Card)
+
+
+def test_extra_fields_raise_error_when_nested():
+    d = {
+            'hand_id': 2, 'cards': [
+                {'rank': 2, 'suit': 'c'},
+                {'rank': 10, 'suit': 'h', 'extra': 'foo'}
+            ]
+        }
+    with pytest.raises(TypeError):
+        howard.from_dict(d, Hand)
+
+
 def test_unsupported_type():
     with pytest.raises(TypeError):
         howard.from_dict({'n': 2}, UnsupportedFloat)

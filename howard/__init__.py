@@ -30,6 +30,11 @@ def _convert_to(obj, t):
                 # get value
                 value = obj[f.name]
                 kwargs[f.name] = _convert_to(value, f.type)
+        extras = set(obj.keys()) - set(kwargs.keys())
+        if extras:
+            raise TypeError(
+                    f'Found unexpected keys {extras} when converting to {t}'
+                )
         return t(**kwargs)
 
     elif hasattr(t, '__origin__'):  # i.e List from typing
