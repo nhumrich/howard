@@ -19,7 +19,7 @@ class Person:
 
 
 my_dict = {'name': 'Bob', 'age': 24}
-person = howard.fromdict(my_dict, Person)
+person = howard.from_dict(my_dict, Person)
 assert person.name == 'Bob'
 assert person.age == 24
 ```
