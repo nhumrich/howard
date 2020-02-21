@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 import dataclasses
 from enum import Enum
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
 import pytest
 
@@ -39,12 +39,19 @@ class Score:
 
 
 @dataclass
-class UnsupportedFloat:
-    n: float
+class Measurement:
+    units: str
+    value: float
+
+
+@dataclass
+class UnsupportedTuple:
+    t: Tuple
 
 
 @pytest.mark.parametrize('d, t', [
     ({'hand_id': 2, 'cards': [{'rank': 2, 'suit': 'c'}]}, Hand),
+    ({'units': 'kg', 'value': 5.0}, Measurement),
 ])
 def test_dict_is_same_coming_back(d, t):
     obj = howard.from_dict(d, t)
@@ -73,7 +80,7 @@ def test_hand_without_card():
 
 def test_unsupported_type():
     with pytest.raises(TypeError):
-        howard.from_dict({'n': 2}, UnsupportedFloat)
+        howard.from_dict({'t': (1, 2, 3)}, UnsupportedTuple)
 
 
 def test_float_instead_of_int():
