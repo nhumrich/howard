@@ -7,6 +7,20 @@ T = TypeVar('T')
 
 
 def from_dict(d: dict, t: Generic[T], ignore_extras: bool=True) -> T:
+    """
+    Initialise an instance of the dataclass t using the values in the dict d
+
+    Example:
+
+    >>> @dataclasses.dataclass
+    ... class Person:
+    ...     name: str
+    ...     age: int
+    ...
+    >>> data = {'name': 'Howard', 'age': 24}
+    >>> from_dict(data, Person)
+    Person(name='Howard', age=24)
+    """
     if not isinstance(d, dict):
         raise TypeError("First argument must be of type dict")
     if not dataclasses.is_dataclass(t):
@@ -16,6 +30,20 @@ def from_dict(d: dict, t: Generic[T], ignore_extras: bool=True) -> T:
 
 
 def to_dict(obj: T, public_only=False) -> dict:
+    """
+    Marshall a dataclass instance into a dict
+
+    Example:
+
+    >>> @dataclasses.dataclass
+    ... class Person:
+    ...     name: str
+    ...     age: int
+    ...
+    >>> instance = Person(name='Howard', age=24)
+    >>> to_dict(instance)
+    {'name': 'Howard', 'age': 24}
+    """
     if not dataclasses.is_dataclass(obj):
         raise TypeError('Argument must be a dataclass')
 
