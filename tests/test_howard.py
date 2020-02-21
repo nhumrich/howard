@@ -43,6 +43,16 @@ class UnsupportedFloat:
     n: float
 
 
+@dataclass
+class Inner:
+    val: str
+
+
+@dataclass
+class Outer:
+    inner: Inner
+
+
 @pytest.mark.parametrize('d, t', [
     ({'hand_id': 2, 'cards': [{'rank': 2, 'suit': 'c'}]}, Hand),
 ])
@@ -71,21 +81,73 @@ def test_hand_without_card():
     assert len(obj.cards) == 0
 
 
-def test_extra_fields_raise_error():
+def test_extra_fields_are_ignored():
     d = {'rank': 2, 'suit': 'h', 'exta': 'foo'}
-    with pytest.raises(TypeError):
-        howard.from_dict(d, Card)
+    obj = howard.from_dict(d, Card)
+    assert isinstance(obj, Card)
+    assert obj.rank == 2
+    assert not hasattr(obj, 'extra')
 
 
-def test_extra_fields_raise_error_when_nested():
+def test_nested_extra_fields_are_ignored():
+    d = {'inner': {'val': 'inner_value', 'extra': 'foo'}}
+    obj = howard.from_dict(d, Outer)
+    assert isinstance(obj, Outer)
+    assert isinstance(obj.inner, Inner)
+    assert not hasattr(obj.inner, 'extra')
+
+
+def test_listed_extra_fields_are_ignored():
     d = {
             'hand_id': 2, 'cards': [
-                {'rank': 2, 'suit': 'c'},
+                {'rank': 10, 'suit': 'h', 'extra': 'foo'}
+            ]
+        }
+    obj = howard.from_dict(d, Hand)
+    assert isinstance(obj, Hand)
+    assert obj.cards[0].rank == 10
+    assert not hasattr(obj.cards[0], 'extra')
+
+
+def test_extra_dict_value_fields_are_ignored():
+    d = {
+        'party_id': 1,
+        'players': {'John': {'hand_id': 2, 'cards': [], 'extra': 'foo'}}
+    }
+    obj = howard.from_dict(d, Party)
+    assert isinstance(obj, Party)
+    assert not hasattr(obj.players['John'], 'extra')
+
+
+def test_extra_fields_raise():
+    d = {'rank': 2, 'suit': 'h', 'extra': 'foo'}
+    with pytest.raises(TypeError):
+        howard.from_dict(d, Card, ignore_extras=False)
+
+
+def test_nested_extra_fields_raise():
+    d = {'inner': {'val': 'inner_value', 'extra': 'foo'}}
+    with pytest.raises(TypeError):
+        howard.from_dict(d, Outer, ignore_extras=False)
+
+
+def test_listed_extra_fields_raise():
+    d = {
+            'hand_id': 2, 'cards': [
                 {'rank': 10, 'suit': 'h', 'extra': 'foo'}
             ]
         }
     with pytest.raises(TypeError):
-        howard.from_dict(d, Hand)
+        howard.from_dict(d, Hand, ignore_extras=False)
+
+
+def test_extra_dict_value_fields_raise():
+    d = {
+        'party_id': 1,
+        'players': {'John': {'hand_id': 2, 'cards': [], 'extra': 'foo'}}
+    }
+    with pytest.raises(TypeError):
+        howard.from_dict(d, Party, ignore_extras=False)
 
 
 def test_unsupported_type():
