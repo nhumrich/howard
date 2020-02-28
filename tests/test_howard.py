@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 import dataclasses
+from datetime import datetime, timedelta
 from enum import Enum
 from typing import List, Dict
 
@@ -41,6 +42,37 @@ class Score:
 @dataclass
 class UnsupportedFloat:
     n: float
+
+
+@dataclass
+class CustomDateEncoding:
+    start_time: datetime
+    duration: timedelta
+
+
+def test_customer_encoding_rountrip():
+    d = {'start_time': '2020-02-20 20:20', 'duration': (5, 0, 0)}
+    decoders = {
+        datetime: lambda s: datetime.strptime(s, '%Y-%m-%d %H:%M'),
+        timedelta: lambda values: timedelta(*values)
+    }
+    encoders = {
+        datetime: lambda ts: ts.strftime('%Y-%m-%d %H:%M'),
+        timedelta: lambda td: (td.days, td.seconds, td.microseconds)
+    }
+    obj = howard.from_dict(d, CustomDateEncoding, decoders=decoders)
+    d_new = howard.to_dict(obj, encoders=encoders)
+    assert d == d_new
+
+
+def test_custom_float_roundtrip():
+    d = {'n': 5.0}
+    decoders = {float: lambda x: x}
+    encoders = {float: lambda x: x}
+    obj = howard.from_dict(d, UnsupportedFloat, decoders=decoders)
+    d_new = howard.to_dict(obj, encoders=encoders)
+    assert obj.n == 5.0
+    assert d_new == d
 
 
 @pytest.mark.parametrize('d, t', [
