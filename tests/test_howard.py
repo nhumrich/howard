@@ -49,6 +49,10 @@ class CustomDateEncoding:
     start_time: datetime
     duration: timedelta
 
+    @property
+    def end_time(self):
+        return self.start_time + self.duration
+
 
 def test_customer_encoding_rountrip():
     d = {'start_time': '2020-02-20 20:20', 'duration': (5, 0, 0)}
@@ -62,6 +66,9 @@ def test_customer_encoding_rountrip():
     }
     obj = howard.from_dict(d, CustomDateEncoding, decoders=decoders)
     d_new = howard.to_dict(obj, encoders=encoders)
+    assert isinstance(obj.start_time, datetime)
+    assert isinstance(obj.duration, timedelta)
+    assert obj.end_time == datetime(2020, 2, 25, 20, 20)
     assert d == d_new
 
 
