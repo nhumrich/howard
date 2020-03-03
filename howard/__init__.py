@@ -7,6 +7,20 @@ T = TypeVar('T')
 
 
 def from_dict(d: dict, t: Generic[T]) -> T:
+    """
+    Initialise an instance of the dataclass t using the values in the dict d
+
+    Example:
+
+    >>> @dataclasses.dataclass
+    ... class Person:
+    ...     name: str
+    ...     age: int
+    ...
+    >>> data = {'name': 'Howard', 'age': 24}
+    >>> from_dict(data, Person)
+    Person(name='Howard', age=24)
+    """
     if not isinstance(d, dict):
         raise TypeError("First argument must be of type dict")
     if not dataclasses.is_dataclass(t):
@@ -15,11 +29,25 @@ def from_dict(d: dict, t: Generic[T]) -> T:
     return _convert_to(d, t)
 
 
-def to_dict(obj: T) -> dict:
+def to_dict(obj: T, public_only=False) -> dict:
+    """
+    Marshall a dataclass instance into a dict
+
+    Example:
+
+    >>> @dataclasses.dataclass
+    ... class Person:
+    ...     name: str
+    ...     age: int
+    ...
+    >>> instance = Person(name='Howard', age=24)
+    >>> to_dict(instance)
+    {'name': 'Howard', 'age': 24}
+    """
     if not dataclasses.is_dataclass(obj):
         raise TypeError('Argument must be a dataclass')
 
-    return _convert_from(obj)
+    return _convert_from(obj, public=public_only)
 
 
 def _convert_to(obj, t):
@@ -66,18 +94,22 @@ def _convert_to(obj, t):
         raise TypeError(f'Unsupported type {t}')
 
 
-def _convert_from(obj):
+def _convert_from(obj, public=False):
     if dataclasses.is_dataclass(obj):
         d = {}
         for f in dataclasses.fields(obj):
-            d[f.name] = _convert_from(getattr(obj, f.name))
+            if f.name.startswith('_') and public:
+                continue  # these attributes dont make it into the dict
+            if f.metadata.get('internal', False):
+                continue  # these attributes are marked as internal
+            d[f.name] = _convert_from(getattr(obj, f.name), public=public)
         return d
     elif isinstance(obj, list):
-        return [_convert_from(i) for i in obj]
+        return [_convert_from(i, public=public) for i in obj]
     elif isinstance(obj, dict):
-        return {k: _convert_from(v) for k, v in obj.items()}
+        return {k: _convert_from(v, public=public) for k, v in obj.items()}
     elif isinstance(obj.__class__, EnumMeta):
-        return _convert_from(obj.value)
+        return _convert_from(obj.value, public=public)
     elif type(obj) in (int, str, bool):
         return obj
     else:
