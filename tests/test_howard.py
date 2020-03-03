@@ -1,7 +1,8 @@
 from dataclasses import dataclass, field
 import dataclasses
 from enum import Enum
-from typing import List, Dict, Tuple
+
+from typing import List, Dict, Tuple, Optional
 
 import pytest
 
@@ -18,7 +19,7 @@ class Suit(Enum):
 @dataclass
 class Card:
     rank: int
-    suit: Suit
+    suit: SuitMerge pull request #7 from shevron/optional-type-support
 
 
 @dataclass
@@ -48,6 +49,26 @@ class Measurement:
 class UnsupportedTuple:
     t: Tuple
 
+@dataclass
+class Drink:
+    name: str
+    glass_type: Optional[str] = field(default=None)
+
+
+@dataclass
+class UnsupportedFloat:
+    n: float
+
+
+@dataclass
+class Inner:
+    val: str
+
+
+@dataclass
+class Outer:
+    inner: Inner
+
 
 @pytest.mark.parametrize('d, t', [
     ({'hand_id': 2, 'cards': [{'rank': 2, 'suit': 'c'}]}, Hand),
@@ -76,6 +97,75 @@ def test_hand_without_card():
 
     assert isinstance(obj, Hand)
     assert len(obj.cards) == 0
+
+
+def test_extra_fields_are_ignored():
+    d = {'rank': 2, 'suit': 'h', 'exta': 'foo'}
+    obj = howard.from_dict(d, Card)
+    assert isinstance(obj, Card)
+    assert obj.rank == 2
+    assert not hasattr(obj, 'extra')
+
+
+def test_nested_extra_fields_are_ignored():
+    d = {'inner': {'val': 'inner_value', 'extra': 'foo'}}
+    obj = howard.from_dict(d, Outer)
+    assert isinstance(obj, Outer)
+    assert isinstance(obj.inner, Inner)
+    assert not hasattr(obj.inner, 'extra')
+
+
+def test_listed_extra_fields_are_ignored():
+    d = {
+            'hand_id': 2, 'cards': [
+                {'rank': 10, 'suit': 'h', 'extra': 'foo'}
+            ]
+        }
+    obj = howard.from_dict(d, Hand)
+    assert isinstance(obj, Hand)
+    assert obj.cards[0].rank == 10
+    assert not hasattr(obj.cards[0], 'extra')
+
+
+def test_extra_dict_value_fields_are_ignored():
+    d = {
+        'party_id': 1,
+        'players': {'John': {'hand_id': 2, 'cards': [], 'extra': 'foo'}}
+    }
+    obj = howard.from_dict(d, Party)
+    assert isinstance(obj, Party)
+    assert not hasattr(obj.players['John'], 'extra')
+
+
+def test_extra_fields_raise():
+    d = {'rank': 2, 'suit': 'h', 'extra': 'foo'}
+    with pytest.raises(TypeError):
+        howard.from_dict(d, Card, ignore_extras=False)
+
+
+def test_nested_extra_fields_raise():
+    d = {'inner': {'val': 'inner_value', 'extra': 'foo'}}
+    with pytest.raises(TypeError):
+        howard.from_dict(d, Outer, ignore_extras=False)
+
+
+def test_listed_extra_fields_raise():
+    d = {
+            'hand_id': 2, 'cards': [
+                {'rank': 10, 'suit': 'h', 'extra': 'foo'}
+            ]
+        }
+    with pytest.raises(TypeError):
+        howard.from_dict(d, Hand, ignore_extras=False)
+
+
+def test_extra_dict_value_fields_raise():
+    d = {
+        'party_id': 1,
+        'players': {'John': {'hand_id': 2, 'cards': [], 'extra': 'foo'}}
+    }
+    with pytest.raises(TypeError):
+        howard.from_dict(d, Party, ignore_extras=False)
 
 
 def test_unsupported_type():
@@ -125,6 +215,24 @@ def test_dict_of_hands():
     assert isinstance(obj.players['John'], Hand)
     assert len(obj.players['John'].cards) == 3
 
+
+def test_optional_type_not_set():
+    drink = {'name': 'tequila'}
+    obj = howard.from_dict(drink, Drink)
+    assert isinstance(obj, Drink)
+    assert obj.glass_type is None
+    # TODO: currently disabled as None is not a supported exportable type
+    # assert {'name': 'tequila', 'glass_type': None} == howard.to_dict(obj)
+
+
+def test_optional_type_set():
+    drink = {'name': 'scotch', 'glass_type': 'lowball'}
+    obj = howard.from_dict(drink, Drink)
+    assert isinstance(obj, Drink)
+    assert 'lowball' == obj.glass_type
+    assert {'name': 'scotch', 'glass_type': 'lowball'} == howard.to_dict(obj)
+
+    
 def test_strip_out_public():
     @dataclass
     class Test2:
@@ -148,4 +256,3 @@ def test_strip_out_internal_fields():
     t = Test3(a=1, b='3')
     result = howard.to_dict(t)
     assert 'b' not in result
-
