@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 import dataclasses
 from enum import Enum
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 import pytest
 
@@ -36,6 +36,12 @@ class Party:
 @dataclass
 class Score:
     scores: Dict[str, int] = field(default_factory=dict)
+
+
+@dataclass
+class Drink:
+    name: str
+    glass_type: Optional[str] = field(default=None)
 
 
 @dataclass
@@ -118,6 +124,24 @@ def test_dict_of_hands():
     assert isinstance(obj.players['John'], Hand)
     assert len(obj.players['John'].cards) == 3
 
+
+def test_optional_type_not_set():
+    drink = {'name': 'tequila'}
+    obj = howard.from_dict(drink, Drink)
+    assert isinstance(obj, Drink)
+    assert obj.glass_type is None
+    # TODO: currently disabled as None is not a supported exportable type
+    # assert {'name': 'tequila', 'glass_type': None} == howard.to_dict(obj)
+
+
+def test_optional_type_set():
+    drink = {'name': 'scotch', 'glass_type': 'lowball'}
+    obj = howard.from_dict(drink, Drink)
+    assert isinstance(obj, Drink)
+    assert 'lowball' == obj.glass_type
+    assert {'name': 'scotch', 'glass_type': 'lowball'} == howard.to_dict(obj)
+
+    
 def test_strip_out_public():
     @dataclass
     class Test2:
@@ -141,4 +165,3 @@ def test_strip_out_internal_fields():
     t = Test3(a=1, b='3')
     result = howard.to_dict(t)
     assert 'b' not in result
-
