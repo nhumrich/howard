@@ -1,7 +1,8 @@
 from dataclasses import dataclass, field
 import dataclasses
 from enum import Enum
-from typing import List, Dict, Optional
+
+from typing import List, Dict, Tuple, Optional
 
 import pytest
 
@@ -18,7 +19,7 @@ class Suit(Enum):
 @dataclass
 class Card:
     rank: int
-    suit: Suit
+    suit: SuitMerge pull request #7 from shevron/optional-type-support
 
 
 @dataclass
@@ -37,6 +38,16 @@ class Party:
 class Score:
     scores: Dict[str, int] = field(default_factory=dict)
 
+
+@dataclass
+class Measurement:
+    units: str
+    value: float
+
+
+@dataclass
+class UnsupportedTuple:
+    t: Tuple
 
 @dataclass
 class Drink:
@@ -61,6 +72,7 @@ class Outer:
 
 @pytest.mark.parametrize('d, t', [
     ({'hand_id': 2, 'cards': [{'rank': 2, 'suit': 'c'}]}, Hand),
+    ({'units': 'kg', 'value': 5.0}, Measurement),
 ])
 def test_dict_is_same_coming_back(d, t):
     obj = howard.from_dict(d, t)
@@ -158,7 +170,7 @@ def test_extra_dict_value_fields_raise():
 
 def test_unsupported_type():
     with pytest.raises(TypeError):
-        howard.from_dict({'n': 2}, UnsupportedFloat)
+        howard.from_dict({'t': (1, 2, 3)}, UnsupportedTuple)
 
 
 def test_float_instead_of_int():

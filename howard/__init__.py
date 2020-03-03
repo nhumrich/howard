@@ -101,7 +101,7 @@ def _convert_to(obj, t, ignore_extras=True):
     elif isinstance(t, EnumMeta):
         return t(obj)
 
-    elif t in (int, str, bool):
+    elif t in (int, str, bool, float):
         if not isinstance(obj, t):
             raise TypeError(f'Object "{obj}" not of expected type {t}')
         return obj
@@ -125,7 +125,7 @@ def _convert_from(obj, public=False):
         return {k: _convert_from(v, public=public) for k, v in obj.items()}
     elif isinstance(obj.__class__, EnumMeta):
         return _convert_from(obj.value, public=public)
-    elif type(obj) in (int, str, bool):
+    elif type(obj) in (int, str, bool, float):
         return obj
     else:
         raise TypeError(f'Unsupported type {type(obj)}')
