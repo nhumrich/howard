@@ -19,7 +19,7 @@ class Suit(Enum):
 @dataclass
 class Card:
     rank: int
-    suit: SuitMerge pull request #7 from shevron/optional-type-support
+    suit: Suit
 
 
 @dataclass
