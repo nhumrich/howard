@@ -1,8 +1,9 @@
 from dataclasses import dataclass, field
 import dataclasses
+from datetime import date
 from enum import Enum
 
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple, Optional, Sequence
 
 import pytest
 
@@ -16,9 +17,16 @@ class Suit(Enum):
     club = 'c'
 
 
+def validate_rank(i: int) -> int:
+    lb, ub = 1, 13
+    if lb <= i <= ub:
+        return i
+    raise ValueError(f'{i} is not between {lb} and {ub}')
+
+
 @dataclass
 class Card:
-    rank: int
+    rank: int = field(metadata=dict(howard=dict(decoder=validate_rank)))
     suit: Suit
 
 
@@ -256,3 +264,67 @@ def test_strip_out_internal_fields():
     t = Test3(a=1, b='3')
     result = howard.to_dict(t)
     assert 'b' not in result
+
+
+def test_field_validation():
+    data = {'suit': 'h', 'rank': 20}
+    with pytest.raises(ValueError):
+        howard.from_dict(data, Card)
+
+
+def test_custom_field_decoding():
+    def decode_date(s: str) -> date:
+        return date.fromisoformat(s)
+
+    @dataclass
+    class Person:
+        name: str
+        dob: date = field(metadata=dict(howard=dict(decoder=decode_date)))
+
+    data = {'name': 'Bob', 'dob': '2020-01-01'}
+    expected_dob = date(2020, 1, 1)
+    bob = howard.from_dict(data, Person)
+
+    assert bob.dob == expected_dob
+
+
+def test_custom_field_encoding():
+    def encode_date(d: date) -> str:
+        return d.isoformat()
+
+    @dataclass
+    class Person:
+        name: str
+        dob: date = field(metadata=dict(howard=dict(encoder=encode_date)))
+
+    bob = Person(name='Bob', dob=date(2020, 1, 1))
+
+    expected_dob = '2020-01-01'
+    data = howard.to_dict(bob)
+
+    assert data['dob'] == expected_dob
+
+
+def test_multipart_field_encoding_decoding():
+    def seq_to_date(s: Sequence[int]) -> date:
+        year, month, day = s
+        return date(year, month, day)
+
+    def date_to_seq(d: date) -> Sequence:
+        return (d.year, d.month, d.day)
+
+    date_field = field(
+        metadata=dict(howard=dict(decoder=seq_to_date, encoder=date_to_seq))
+    )
+
+    @dataclass
+    class Person:
+        name: str
+        dob: date = date_field
+
+    data = {'name': 'Alice', 'dob': (2020, 1, 15)}
+    expected_dob = date(2020, 1, 15)
+    alice = howard.from_dict(data, Person)
+    assert alice.dob == expected_dob
+    # Test roundtrip:
+    assert howard.to_dict(alice) == data

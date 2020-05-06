@@ -57,7 +57,11 @@ def _convert_to(obj, t, ignore_extras=True):
             if f.name in obj:
                 # get value
                 value = obj[f.name]
-                kwargs[f.name] = _convert_to(value, f.type, ignore_extras=ignore_extras)
+                decoder = f.metadata.get('howard', {}).get('decoder')
+                if decoder:
+                    kwargs[f.name] = decoder(value)
+                else:
+                    kwargs[f.name] = _convert_to(value, f.type, ignore_extras=ignore_extras)
 
         if not ignore_extras:
             extras = set(obj.keys()) - set(kwargs.keys())
@@ -117,7 +121,11 @@ def _convert_from(obj, public=False):
                 continue  # these attributes dont make it into the dict
             if f.metadata.get('internal', False):
                 continue  # these attributes are marked as internal
-            d[f.name] = _convert_from(getattr(obj, f.name), public=public)
+            encoder = f.metadata.get('howard', {}).get('encoder')
+            if encoder:
+                d[f.name] = encoder(getattr(obj, f.name))
+            else:
+                d[f.name] = _convert_from(getattr(obj, f.name), public=public)
         return d
     elif isinstance(obj, list):
         return [_convert_from(i, public=public) for i in obj]
