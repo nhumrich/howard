@@ -125,7 +125,10 @@ def _convert_from(obj, public=False):
             if encoder:
                 d[f.name] = encoder(getattr(obj, f.name))
             else:
-                d[f.name] = _convert_from(getattr(obj, f.name), public=public)
+                if getattr(obj, f.name) is None:
+                    d[f.name] = None
+                else:
+                    d[f.name] = _convert_from(getattr(obj, f.name), public=public)
         return d
     elif isinstance(obj, list):
         return [_convert_from(i, public=public) for i in obj]

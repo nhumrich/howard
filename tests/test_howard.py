@@ -3,7 +3,7 @@ import dataclasses
 from datetime import date
 from enum import Enum
 
-from typing import List, Dict, Tuple, Optional, Sequence
+from typing import List, Dict, Tuple, Optional, Sequence, Union
 
 import pytest
 
@@ -240,7 +240,7 @@ def test_optional_type_set():
     assert 'lowball' == obj.glass_type
     assert {'name': 'scotch', 'glass_type': 'lowball'} == howard.to_dict(obj)
 
-    
+
 def test_strip_out_public():
     @dataclass
     class Test2:
@@ -328,3 +328,17 @@ def test_multipart_field_encoding_decoding():
     assert alice.dob == expected_dob
     # Test roundtrip:
     assert howard.to_dict(alice) == data
+
+
+def test_none_with_none_as_default():
+
+    @dataclass
+    class ProcMan:
+        schedule: Union[str, None] = field(default=None)
+        children_ids: List[str] = field(default_factory=list)
+        node_context: dict = field(default_factory=dict)
+    config = {'children_ids': []}
+    process_config = howard.from_dict(config, ProcMan)
+
+    # This would cause an error if a default value is actually "none
+    howard.to_dict(process_config)
