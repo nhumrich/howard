@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
-import dataclasses
-from datetime import date
+from datetime import date, datetime
 from enum import Enum
 
 from typing import List, Dict, Tuple, Optional, Sequence, Union
@@ -342,3 +341,21 @@ def test_none_with_none_as_default():
 
     # This would cause an error if a default value is actually "none
     howard.to_dict(process_config)
+
+
+def test_datetime_to_from_dict():
+
+    @dataclass
+    class DateTimeTest:
+        my_date: datetime
+
+    data = {'my_date': '1994-11-05T13:15:30Z'}
+    # marshal into DateTimeTest object
+    test_datetime = howard.from_dict(data, DateTimeTest)
+    # make sure it is a datetime and the right year (should be right beyond that)
+    assert type(test_datetime.my_date) is datetime
+    assert test_datetime.my_date.year == 1994
+
+    # Then go back to a dict and make sure we didn't lose any data for the datetime.
+    new_dict = howard.to_dict(test_datetime)
+    assert '1994-11-05T13:15:30' in new_dict.get('my_date')

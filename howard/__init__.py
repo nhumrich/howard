@@ -1,4 +1,6 @@
 import dataclasses
+from datetime import datetime
+import dateutil.parser
 from typing import Generic, TypeVar, Union
 from enum import EnumMeta
 
@@ -109,6 +111,8 @@ def _convert_to(obj, t, ignore_extras=True):
         if not isinstance(obj, t):
             raise TypeError(f'Object "{obj}" not of expected type {t}')
         return obj
+    elif t is datetime:
+        return dateutil.parser.parse(obj)
     else:
         raise TypeError(f'Unsupported type {t}')
 
@@ -137,5 +141,7 @@ def _convert_from(obj, public=False):
         return obj
     elif obj is None:
         return obj
+    elif type(obj) is datetime:
+        return obj.isoformat()
     else:
         raise TypeError(f'Unsupported type {type(obj)}')
