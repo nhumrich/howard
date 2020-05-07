@@ -135,5 +135,7 @@ def _convert_from(obj, public=False):
         return _convert_from(obj.value, public=public)
     elif type(obj) in (int, str, bool, float):
         return obj
+    elif obj is None:
+        return obj
     else:
         raise TypeError(f'Unsupported type {type(obj)}')
