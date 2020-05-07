@@ -125,10 +125,7 @@ def _convert_from(obj, public=False):
             if encoder:
                 d[f.name] = encoder(getattr(obj, f.name))
             else:
-                if getattr(obj, f.name) is None:
-                    d[f.name] = None
-                else:
-                    d[f.name] = _convert_from(getattr(obj, f.name), public=public)
+                d[f.name] = _convert_from(getattr(obj, f.name), public=public)
         return d
     elif isinstance(obj, list):
         return [_convert_from(i, public=public) for i in obj]
@@ -137,6 +134,8 @@ def _convert_from(obj, public=False):
     elif isinstance(obj.__class__, EnumMeta):
         return _convert_from(obj.value, public=public)
     elif type(obj) in (int, str, bool, float):
+        return obj
+    elif obj is None:
         return obj
     else:
         raise TypeError(f'Unsupported type {type(obj)}')
