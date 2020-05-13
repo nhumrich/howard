@@ -9,6 +9,7 @@ setup(
     name='howard',
     version='1.4.2',
     packages=['howard'],
+    install_requires=["python-dateutil"],
     long_description=long_description,
     url='https://github.com/nhumrich/howard',
     long_description_content_type='text/markdown',
