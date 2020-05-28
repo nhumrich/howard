@@ -94,6 +94,11 @@ def _convert_to(obj, t, ignore_extras=True):
                 _convert_to(i, args[0], ignore_extras=ignore_extras)
                 for i in obj
             ]
+        elif real_type == tuple:
+            return tuple(
+                _convert_to(i, args[0], ignore_extras=ignore_extras)
+                for i in obj
+            )
         elif real_type == dict:
             return {
                 _convert_to(k, args[0], ignore_extras=ignore_extras): _convert_to(v, args[1], ignore_extras=ignore_extras)
@@ -133,6 +138,8 @@ def _convert_from(obj, public=False):
         return d
     elif isinstance(obj, list):
         return [_convert_from(i, public=public) for i in obj]
+    elif isinstance(obj, tuple):
+        return tuple(_convert_from(i, public=public) for i in obj)
     elif isinstance(obj, dict):
         return {k: _convert_from(v, public=public) for k, v in obj.items()}
     elif isinstance(obj.__class__, EnumMeta):
