@@ -85,8 +85,15 @@ def _convert_to(obj, t, ignore_extras=True):
             else:
                 return _convert_to(obj, args[0])
 
+
         # validate
         if not isinstance(obj, real_type):
+            # Not a problem if we're converting from a list to a tuple:
+            if real_type == tuple and isinstance(obj, list):
+                return tuple(
+                    _convert_to(i, args[0], ignore_extras=ignore_extras)
+                    for i in obj
+                )
             raise TypeError(f'Object "{obj}" not of expected type {real_type}')
 
         if real_type == list:
@@ -94,6 +101,11 @@ def _convert_to(obj, t, ignore_extras=True):
                 _convert_to(i, args[0], ignore_extras=ignore_extras)
                 for i in obj
             ]
+        elif real_type == tuple:
+            return tuple(
+                _convert_to(i, args[0], ignore_extras=ignore_extras)
+                for i in obj
+            )
         elif real_type == dict:
             return {
                 _convert_to(k, args[0], ignore_extras=ignore_extras): _convert_to(v, args[1], ignore_extras=ignore_extras)
@@ -101,7 +113,7 @@ def _convert_to(obj, t, ignore_extras=True):
             }
         else:
             raise TypeError(
-                'Type {real_type} currently not supported by howard. '
+                f'Type {real_type} currently not supported by howard. '
                 'Consider making a PR.'
             )
     elif isinstance(t, EnumMeta):
@@ -131,7 +143,7 @@ def _convert_from(obj, public=False):
             else:
                 d[f.name] = _convert_from(getattr(obj, f.name), public=public)
         return d
-    elif isinstance(obj, list):
+    elif isinstance(obj, list) or isinstance(obj, tuple):
         return [_convert_from(i, public=public) for i in obj]
     elif isinstance(obj, dict):
         return {k: _convert_from(v, public=public) for k, v in obj.items()}

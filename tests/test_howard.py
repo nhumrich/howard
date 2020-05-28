@@ -53,8 +53,9 @@ class Measurement:
 
 
 @dataclass
-class UnsupportedTuple:
-    t: Tuple
+class UnsupportedType:
+    var: complex
+
 
 @dataclass
 class Drink:
@@ -75,6 +76,12 @@ class Inner:
 @dataclass
 class Outer:
     inner: Inner
+
+
+@dataclass
+class Poem:
+    author: str
+    lines: Tuple[str]
 
 
 @pytest.mark.parametrize('d, t', [
@@ -104,6 +111,21 @@ def test_hand_without_card():
 
     assert isinstance(obj, Hand)
     assert len(obj.cards) == 0
+
+
+def test_tuple():
+    d = {
+        'author': 'Yosa Buson',
+        'lines': [
+            'Blowing from the west',
+            'Fallen leaves gather,',
+            'In the east.',
+        ]
+    }
+    obj = howard.from_dict(d, Poem)
+    assert isinstance(obj.lines, tuple)
+    # roundtrip:
+    assert howard.to_dict(obj) == d
 
 
 def test_extra_fields_are_ignored():
@@ -175,9 +197,16 @@ def test_extra_dict_value_fields_raise():
         howard.from_dict(d, Party, ignore_extras=False)
 
 
-def test_unsupported_type():
+def test_unsupported_type_from_dict():
+    d = {'var': (0, 0)}
     with pytest.raises(TypeError):
-        howard.from_dict({'t': (1, 2, 3)}, UnsupportedTuple)
+        howard.from_dict(d, UnsupportedType)
+
+
+def test_unsupported_type_to_dict():
+    obj = UnsupportedType(var=complex(0, 0))
+    with pytest.raises(TypeError):
+        howard.to_dict(obj)
 
 
 def test_float_instead_of_int():
