@@ -116,29 +116,16 @@ def test_hand_without_card():
 def test_tuple():
     d = {
         'author': 'Yosa Buson',
-        'lines': (
-            'Blowing from the west',
-            'Fallen leaves gather,',
-            'In the east.',
-        )
-    }
-    obj = howard.from_dict(d, Poem)
-    assert isinstance(obj.lines, tuple)
-    # roundtrip:
-    assert howard.to_dict(obj) == d
-
-
-def test_tuple_with_list():
-    d = {
-        'author': 'Yosa Buson',
         'lines': [
             'Blowing from the west',
             'Fallen leaves gather,',
             'In the east.',
         ]
     }
-    with pytest.raises(TypeError):
-        howard.from_dict(d, Poem)
+    obj = howard.from_dict(d, Poem)
+    assert isinstance(obj.lines, tuple)
+    # roundtrip:
+    assert howard.to_dict(obj) == d
 
 
 def test_extra_fields_are_ignored():
