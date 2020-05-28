@@ -101,7 +101,7 @@ def _convert_to(obj, t, ignore_extras=True):
             }
         else:
             raise TypeError(
-                'Type {real_type} currently not supported by howard. '
+                f'Type {real_type} currently not supported by howard. '
                 'Consider making a PR.'
             )
     elif isinstance(t, EnumMeta):
