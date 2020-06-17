@@ -1,7 +1,8 @@
 import dataclasses
 from datetime import datetime
 import dateutil.parser
-from typing import Generic, TypeVar, Union
+import typing
+from typing import Generic, TypeVar, Union, TypedDict
 from enum import EnumMeta
 
 
@@ -96,7 +97,8 @@ def _convert_to(obj, t, ignore_extras=True):
             ]
         elif real_type == dict:
             return {
-                _convert_to(k, args[0], ignore_extras=ignore_extras): _convert_to(v, args[1], ignore_extras=ignore_extras)
+                _convert_to(k, args[0], ignore_extras=ignore_extras):
+                    _convert_to(v, args[1], ignore_extras=ignore_extras)
                 for k, v in obj.items()
             }
         else:
@@ -104,6 +106,21 @@ def _convert_to(obj, t, ignore_extras=True):
                 'Type {real_type} currently not supported by howard. '
                 'Consider making a PR.'
             )
+    elif isinstance(t, typing._TypedDictMeta):
+        # is a TypedDict
+        result = {}
+        for key, value in t.__annotations__.items():
+            if key not in obj:
+                if t.__total__:
+                    raise TypeError(f'Object "{obj}" is missing required key: {key}')
+            else:
+                result[key] = _convert_to(obj[key], value, ignore_extras=ignore_extras)
+        if not ignore_extras:
+            for key in obj:
+                if key not in t.__annotations__:
+                    raise TypeError(f'Found unexpected key {key} when converting to {t}')
+        return result
+
     elif isinstance(t, EnumMeta):
         return t(obj)
 

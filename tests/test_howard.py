@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from enum import Enum
 
-from typing import List, Dict, Tuple, Optional, Sequence, Union
+from typing import List, Dict, Tuple, Optional, Sequence, Union, TypedDict
 
 import pytest
 
@@ -55,6 +55,7 @@ class Measurement:
 @dataclass
 class UnsupportedTuple:
     t: Tuple
+
 
 @dataclass
 class Drink:
@@ -359,3 +360,65 @@ def test_datetime_to_from_dict():
     # Then go back to a dict and make sure we didn't lose any data for the datetime.
     new_dict = howard.to_dict(test_datetime)
     assert '1994-11-05T13:15:30' in new_dict.get('my_date')
+
+
+def test_with_typed_dict():
+    @dataclass
+    class TypedDictTest:
+        sub: List[TypedDict('sub', {'key1': str, 'key2': int})]
+
+    data = {'sub': [{'key1': 'hello', 'key2': 5}]}
+    result = howard.from_dict(data, TypedDictTest)
+    assert isinstance(result, TypedDictTest)
+    assert isinstance(result.sub, list)
+    assert isinstance(result.sub[0], dict)
+
+    test_dict = howard.to_dict(result)
+    assert isinstance(test_dict, dict)
+    assert isinstance(test_dict['sub'], list)
+
+
+def test_with_typed_dict_fail():
+    @dataclass
+    class TypedDictTest:
+        sub: List[TypedDict('sub', {'key1': str, 'key2': int})]
+
+    data = {'sub': [{'key1': 'hello'}]}
+    with pytest.raises(TypeError):
+        howard.from_dict(data, TypedDictTest)
+
+
+def test_with_typed_dict_total_false():
+    @dataclass
+    class TypedDictTest:
+        sub: List[TypedDict('sub', {'key1': str, 'key2': int}, total=False)]
+
+    data = {'sub': [{'key1': 'hello'}]}
+    result = howard.from_dict(data, TypedDictTest)
+    assert isinstance(result, TypedDictTest)
+    assert isinstance(result.sub, list)
+    assert isinstance(result.sub[0], dict)
+
+    test_dict = howard.to_dict(result)
+    assert isinstance(test_dict, dict)
+    assert isinstance(test_dict['sub'], list)
+
+
+def test_with_advanced_typed_dict():
+    @dataclass
+    class TypedDictTest:
+        pair: List[TypedDict('pair', {'drink': Drink, 'card': Card})]
+
+    data = {'pair': [{'drink': {'name': 'milk'}, 'card': {'rank': 5, 'suit': 'h'}},
+                     {'drink': {'name': 'gin'}, 'card': {'rank': 12, 'suit': 's'}}]}
+
+    result = howard.from_dict(data, TypedDictTest)
+    assert isinstance(result, TypedDictTest)
+    assert isinstance(result.pair, list)
+    assert isinstance(result.pair[0], dict)
+    assert isinstance(result.pair[0]['drink'], Drink)
+    assert isinstance(result.pair[0]['card'], Card)
+
+    test_dict = howard.to_dict(result)
+    assert isinstance(test_dict, dict)
+
