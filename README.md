@@ -110,9 +110,9 @@ In the above example, you can see a couple things.
 
 
 # FAQ
-* *Why not just use `dataclasses.asdict` and `MyDataclass(**my_dict)`?* 
+* _Why not just use `dataclasses.asdict` and `MyDataclass(**my_dict)`?_ 
   `dataclasses.asdict` doesn't work on all types, for example, Enums or datetimes.
   `MyDataclass(**my_dict)` will not recursively turn the subobjects into their respective datatype.
 
-* *What about custom types?* 
+* _What about custom types?_ 
   You can specify custom decoders and encoders in a dataclass `field.metadata` section. See example above.
