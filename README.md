@@ -47,7 +47,7 @@ pip install howard
 
 ## More examples
 
-For more examples, you can go look at the tests at (tests/test_howard.py)[tests/test_howard.py]
+For more examples, you can go look at the tests at [tests/test_howard.py](tests/test_howard.py)
 
 Here is a basic example of recursive types and how it can work with howard:
 
