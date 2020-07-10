@@ -2,14 +2,14 @@ import dataclasses
 from datetime import datetime
 import dateutil.parser
 import typing
-from typing import Generic, TypeVar, Union, TypedDict
+from typing import TypeVar, Union, TypedDict
 from enum import EnumMeta
 
 
 T = TypeVar('T')
 
 
-def from_dict(d: dict, t: Generic[T], ignore_extras: bool=True) -> T:
+def from_dict(d: dict, t: T, ignore_extras: bool = True) -> T:
     """
     Initialise an instance of the dataclass t using the values in the dict d
 
