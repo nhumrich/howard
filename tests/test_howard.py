@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from enum import Enum
 
-from typing import List, Dict, Tuple, Optional, Sequence, Union, TypedDict
+from typing import List, Dict, Tuple, Optional, Sequence, Union, TypedDict, Literal
 
 import pytest
 
@@ -422,3 +422,20 @@ def test_with_advanced_typed_dict():
     test_dict = howard.to_dict(result)
     assert isinstance(test_dict, dict)
 
+
+def test_with_literals():
+    @dataclass
+    class LiteralCard:
+        rank: int
+        suit: Literal['heart', 'spade', 'diamond', 'club']
+
+    with pytest.raises(TypeError):
+        # suit isn't valid
+        howard.from_dict({'rank': 13, 'suit': 'other'}, LiteralCard)
+
+    result = howard.from_dict({'rank': 13, 'suit': 'spade'}, LiteralCard)
+    assert isinstance(result, LiteralCard)
+
+    final = howard.to_dict(result)
+    assert isinstance(final, dict)
+    assert isinstance(final['suit'], str)

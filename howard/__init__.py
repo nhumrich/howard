@@ -2,7 +2,7 @@ import dataclasses
 from datetime import datetime
 import dateutil.parser
 import typing
-from typing import TypeVar, Union, TypedDict
+from typing import TypeVar, Union
 from enum import EnumMeta
 
 
@@ -74,9 +74,9 @@ def _convert_to(obj, t, ignore_extras=True):
                 )
         return t(**kwargs)
 
-    elif hasattr(t, '__origin__'):  # i.e List from typing
-        args = t.__args__
-        real_type = t.__origin__
+    elif typing.get_origin(t):  # A typing "mask" type, i.e List/Dict
+        args = typing.get_args(t)
+        real_type = typing.get_origin(t)
 
         # Handle Union types by assuming Optional
         # TODO: support real Union types
@@ -85,6 +85,11 @@ def _convert_to(obj, t, ignore_extras=True):
                 return obj
             else:
                 return _convert_to(obj, args[0])
+
+        if real_type == typing.Literal:
+            if obj not in args:
+                raise TypeError(f'Invalid value "{obj}". Must be one of: {", ".join(args)}')
+            return obj
 
         # validate
         if not isinstance(obj, real_type):
@@ -109,15 +114,16 @@ def _convert_to(obj, t, ignore_extras=True):
     elif isinstance(t, typing._TypedDictMeta):
         # is a TypedDict
         result = {}
-        for key, value in t.__annotations__.items():
+        for key, value in typing.get_type_hints(t).items():
             if key not in obj:
                 if t.__total__:
                     raise TypeError(f'Object "{obj}" is missing required key: {key}')
             else:
                 result[key] = _convert_to(obj[key], value, ignore_extras=ignore_extras)
+        hints = typing.get_type_hints(t)
         if not ignore_extras:
             for key in obj:
-                if key not in t.__annotations__:
+                if key not in hints:
                     raise TypeError(f'Found unexpected key {key} when converting to {t}')
         return result
 
