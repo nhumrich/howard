@@ -55,6 +55,8 @@ def to_dict(obj: T, public_only=False) -> dict:
 
 def _convert_to(obj, t, ignore_extras=True):
     kwargs = {}
+    if t == typing.Any:
+        return obj
     if dataclasses.is_dataclass(t):
         for f in dataclasses.fields(t):
             if f.name in obj:
@@ -74,6 +76,10 @@ def _convert_to(obj, t, ignore_extras=True):
                 )
         return t(**kwargs)
 
+    elif t == dict:
+        return _convert_to(obj, typing.Dict[typing.Any, typing.Any], ignore_extras=ignore_extras)
+    elif t == list:
+        return _convert_to(obj, typing.List[typing.Any], ignore_extras=ignore_extras)
     elif typing.get_origin(t):  # A typing "mask" type, i.e List/Dict
         args = typing.get_args(t)
         real_type = typing.get_origin(t)
@@ -85,7 +91,7 @@ def _convert_to(obj, t, ignore_extras=True):
                     return obj
             for arg in args:
                 try:
-                    return _convert_to(obj, arg)
+                    return _convert_to(obj, arg, ignore_extras=ignore_extras)
                 except TypeError:
                     continue
             raise TypeError(f'{obj} could not be converted to any type in: '
@@ -136,7 +142,7 @@ def _convert_to(obj, t, ignore_extras=True):
         return t(obj)
     elif hasattr(t, '__supertype__'):
         # is a Vanity type, such as `A = NewType('A', str)`
-        return _convert_to(obj, t.__supertype__)
+        return _convert_to(obj, t.__supertype__, ignore_extras=ignore_extras)
     elif t in (int, str, bool, float):
         if not isinstance(obj, t):
             raise TypeError(f'Object "{obj}" not of expected type {t}')

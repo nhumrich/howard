@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from enum import Enum
 
-from typing import List, Dict, Tuple, Optional, Sequence, Union, TypedDict, Literal, NewType, TypeVar
+from typing import List, Dict, Tuple, Optional, Sequence, Union, TypedDict, Literal, NewType, TypeVar, Any
 
 import pytest
 
@@ -480,3 +480,23 @@ def test_vanity_types():
     result = howard.from_dict({'id': '123'}, MyTestDC)
     assert isinstance(result, MyTestDC)
     assert isinstance(result.id, str)
+
+
+def test_with_any():
+    # Any type should basically bypass howard
+    @dataclass
+    class SomeType:
+        a: dict  # dict is the same as Dict[Any, Any]
+        b: list  # list is the same as List[Any]
+        c: Dict[str, Any]
+        d: List[Any]
+        e: Any
+
+    result = howard.from_dict({'a': {'foo': 'bar'}, 'b': [1, '2', True],
+                               'c': {'foo': 'bar'}, 'd': ['hello', False], 'e': 1}, SomeType)
+    assert isinstance(result, SomeType)
+    assert isinstance(result.a, dict)
+    assert isinstance(result.b, list)
+    assert isinstance(result.c, dict)
+    assert isinstance(result.d, list)
+    assert isinstance(result.e, int)
