@@ -9,6 +9,10 @@ from enum import EnumMeta
 T = TypeVar('T')
 
 
+class HowardError(TypeError):
+    """ Used when howard cant correctly parse because the types dont match """
+
+
 def from_dict(d: dict, t: Type[T], ignore_extras: bool = True) -> T:
     """
     Initialise an instance of the dataclass t using the values in the dict d
@@ -25,9 +29,9 @@ def from_dict(d: dict, t: Type[T], ignore_extras: bool = True) -> T:
     Person(name='Howard', age=24)
     """
     if not isinstance(d, dict):
-        raise TypeError("First argument must be of type dict")
+        raise HowardError("First argument must be of type dict")
     if not dataclasses.is_dataclass(t):
-        raise TypeError("Second argument must be a dataclass")
+        raise HowardError("Second argument must be a dataclass")
 
     return _convert_to(d, t, ignore_extras)
 
@@ -48,7 +52,7 @@ def to_dict(obj: T, public_only=False) -> dict:
     {'name': 'Howard', 'age': 24}
     """
     if not dataclasses.is_dataclass(obj):
-        raise TypeError('Argument must be a dataclass')
+        raise HowardError('Argument must be a dataclass')
 
     return _convert_from(obj, public=public_only)
 
@@ -71,7 +75,7 @@ def _convert_to(obj, t, ignore_extras=True):
         if not ignore_extras:
             extras = set(obj.keys()) - set(kwargs.keys())
             if extras:
-                raise TypeError(
+                raise HowardError(
                     f'Found unexpected keys {extras} when converting to {t}'
                 )
         return t(**kwargs)
@@ -92,19 +96,19 @@ def _convert_to(obj, t, ignore_extras=True):
             for arg in args:
                 try:
                     return _convert_to(obj, arg, ignore_extras=ignore_extras)
-                except TypeError:
+                except HowardError:
                     continue
-            raise TypeError(f'{obj} could not be converted to any type in: '
+            raise HowardError(f'{obj} could not be converted to any type in: '
                             f'{", ".join(f"{a}" for a in args)}')
 
         if real_type == typing.Literal:
             if obj not in args:
-                raise TypeError(f'Invalid value "{obj}". Must be one of: {", ".join(args)}')
+                raise HowardError(f'Invalid value "{obj}". Must be one of: {", ".join(args)}')
             return obj
 
         # validate
         if not isinstance(obj, real_type):
-            raise TypeError(f'Object "{obj}" not of expected type {real_type}')
+            raise HowardError(f'Object "{obj}" not of expected type {real_type}')
 
         if real_type == list:
             return [
@@ -118,7 +122,7 @@ def _convert_to(obj, t, ignore_extras=True):
                 for k, v in obj.items()
             }
         else:
-            raise TypeError(
+            raise HowardError(
                 'Type {real_type} currently not supported by howard. '
                 'Consider making a PR.'
             )
@@ -128,14 +132,14 @@ def _convert_to(obj, t, ignore_extras=True):
         for key, value in typing.get_type_hints(t).items():
             if key not in obj:
                 if t.__total__:
-                    raise TypeError(f'Object "{obj}" is missing required key: {key}')
+                    raise HowardError(f'Object "{obj}" is missing required key: {key}')
             else:
                 result[key] = _convert_to(obj[key], value, ignore_extras=ignore_extras)
         hints = typing.get_type_hints(t)
         if not ignore_extras:
             for key in obj:
                 if key not in hints:
-                    raise TypeError(f'Found unexpected key {key} when converting to {t}')
+                    raise HowardError(f'Found unexpected key {key} when converting to {t}')
         return result
 
     elif isinstance(t, EnumMeta):
@@ -145,12 +149,12 @@ def _convert_to(obj, t, ignore_extras=True):
         return _convert_to(obj, t.__supertype__, ignore_extras=ignore_extras)
     elif t in (int, str, bool, float):
         if not isinstance(obj, t):
-            raise TypeError(f'Object "{obj}" not of expected type {t}')
+            raise HowardError(f'Object "{obj}" not of expected type {t}')
         return t(obj)
     elif t is datetime:
         return dateutil.parser.parse(obj)
     else:
-        raise TypeError(f'Unsupported type {t}')
+        raise HowardError(f'Unsupported type {t}')
 
 
 def _convert_from(obj, public=False):
@@ -180,4 +184,4 @@ def _convert_from(obj, public=False):
     elif type(obj) is datetime:
         return obj.isoformat()
     else:
-        raise TypeError(f'Unsupported type {type(obj)}')
+        raise HowardError(f'Unsupported type {type(obj)}')
