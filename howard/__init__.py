@@ -159,7 +159,7 @@ def _convert_to(obj, t, ignore_extras=True):
             if p == object:
                 continue
             try:
-                return _convert_to(obj, p, ignore_extras=ignore_extras)
+                return t(_convert_to(obj, p, ignore_extras=ignore_extras))
             except TypeError:
                 continue
 
