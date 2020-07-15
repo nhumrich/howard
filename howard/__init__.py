@@ -154,6 +154,15 @@ def _convert_to(obj, t, ignore_extras=True):
     elif t is datetime:
         return dateutil.parser.parse(obj)
     else:
+        # not supported type, attempt to use parent classes
+        for p in t.__bases__:
+            if p == object:
+                continue
+            try:
+                return _convert_to(obj, p, ignore_extras=ignore_extras)
+            except TypeError:
+                continue
+
         raise HowardError(f'Unsupported type {t}')
 
 

@@ -500,3 +500,17 @@ def test_with_any():
     assert isinstance(result.c, dict)
     assert isinstance(result.d, list)
     assert isinstance(result.e, int)
+
+
+def test_subclass():
+    class MyStr(str):
+        # while not a "type" its still valid
+        pass
+    
+    @dataclass
+    class SomeType:
+        a: MyStr
+
+    result = howard.from_dict({'a': 'cabbages'}, SomeType)
+    assert isinstance(result, SomeType)
+    assert isinstance(result.a, str)

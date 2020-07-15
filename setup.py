@@ -7,7 +7,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='howard',
-    version='1.11.0',
+    version='1.12.0',
     packages=['howard'],
     install_requires=["python-dateutil"],
     long_description=long_description,
