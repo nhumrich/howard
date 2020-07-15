@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from enum import Enum
 
-from typing import List, Dict, Tuple, Optional, Sequence, Union, TypedDict, Literal
+from typing import List, Dict, Tuple, Optional, Sequence, Union, TypedDict, Literal, NewType, TypeVar
 
 import pytest
 
@@ -470,3 +470,13 @@ def test_with_union():
     result = howard.from_dict({'a': True, 'b': 'b'}, SomeType)
     assert isinstance(result, SomeType)
     assert isinstance(result.a, bool)
+
+
+def test_vanity_types():
+    UserID = NewType('UniqueID', str)
+    @dataclass
+    class MyTestDC:
+        id: UserID
+    result = howard.from_dict({'id': '123'}, MyTestDC)
+    assert isinstance(result, MyTestDC)
+    assert isinstance(result.id, str)

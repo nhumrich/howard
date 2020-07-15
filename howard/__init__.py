@@ -134,7 +134,9 @@ def _convert_to(obj, t, ignore_extras=True):
 
     elif isinstance(t, EnumMeta):
         return t(obj)
-
+    elif hasattr(t, '__supertype__'):
+        # is a Vanity type, such as `A = NewType('A', str)`
+        return t(obj)
     elif t in (int, str, bool, float):
         if not isinstance(obj, t):
             raise TypeError(f'Object "{obj}" not of expected type {t}')
