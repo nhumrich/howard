@@ -439,3 +439,34 @@ def test_with_literals():
     final = howard.to_dict(result)
     assert isinstance(final, dict)
     assert isinstance(final['suit'], str)
+
+
+def test_with_union():
+    @dataclass
+    class SomeType:
+        a: Union[str, bool]
+        b: Union[str, int]
+
+    result = howard.from_dict({'a': 'a', 'b': 'b'}, SomeType)
+    assert isinstance(result, SomeType)
+    assert isinstance(result.b, str)
+    assert isinstance(result.a, str)
+
+    result = howard.from_dict({'a': 'a', 'b': 5}, SomeType)
+    assert isinstance(result, SomeType)
+    assert isinstance(result.b, int)
+
+    result = howard.from_dict({'a': 'a', 'b': False}, SomeType)
+    assert isinstance(result, SomeType)
+    assert isinstance(result.b, int)
+    assert result.b == 0
+
+    with pytest.raises(TypeError):
+        howard.from_dict({'a': 'a', 'b': ['list']}, SomeType)
+
+    with pytest.raises(TypeError):
+        howard.from_dict({'a': 1, 'b': 'b'}, SomeType)
+
+    result = howard.from_dict({'a': True, 'b': 'b'}, SomeType)
+    assert isinstance(result, SomeType)
+    assert isinstance(result.a, bool)

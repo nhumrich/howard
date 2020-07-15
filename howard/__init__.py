@@ -78,13 +78,18 @@ def _convert_to(obj, t, ignore_extras=True):
         args = typing.get_args(t)
         real_type = typing.get_origin(t)
 
-        # Handle Union types by assuming Optional
-        # TODO: support real Union types
-        if real_type == Union and args[-1] == type(None):
-            if obj is None:
-                return obj
-            else:
-                return _convert_to(obj, args[0])
+        if real_type == Union:
+            if type(None) in args and obj is None:
+                # an `Optional[x]` type or `Union[x, y, None]` type
+                if obj is None:
+                    return obj
+            for arg in args:
+                try:
+                    return _convert_to(obj, arg)
+                except TypeError:
+                    continue
+            raise TypeError(f'{obj} could not be converted to any type in: '
+                            f'{", ".join(f"{a}" for a in args)}')
 
         if real_type == typing.Literal:
             if obj not in args:
@@ -133,7 +138,7 @@ def _convert_to(obj, t, ignore_extras=True):
     elif t in (int, str, bool, float):
         if not isinstance(obj, t):
             raise TypeError(f'Object "{obj}" not of expected type {t}')
-        return obj
+        return t(obj)
     elif t is datetime:
         return dateutil.parser.parse(obj)
     else:
