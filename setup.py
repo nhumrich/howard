@@ -7,7 +7,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='howard',
-    version='1.9.0',
+    version='1.9.2',
     packages=['howard'],
     install_requires=["python-dateutil"],
     long_description=long_description,
@@ -15,6 +15,6 @@ setup(
     long_description_content_type='text/markdown',
     license='MIT',
     author='nhumrich',
-    author_email='',
+    author_email='nick@humrich.us',
     description='Convert dictionaries to dataclasses and back'
 )
